@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecureWatch AI</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0:#060b11;--bg1:#0b1220;--bg2:#0f1a2e;--bg3:#111f35;
+  --card:#0d1828;--card2:#0a1420;--border:#1a2d45;--border2:#223550;
+  --text1:#e4eaf4;--text2:#7a9bbf;--text3:#3d5a7a;
+  --cyan:#00d4ff;--green:#00e887;--red:#ff3b5c;--orange:#ff8c42;
+  --yellow:#ffd166;--purple:#9b7dff;--blue:#3b82f6;--pink:#ff6b9d;
+  --sidebar:224px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg0);color:var(--text1);font-family:'Syne',sans-serif;display:flex;flex-direction:column;}
+
+/* ── SVG ICON SYSTEM ── */
+.icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.icon svg{display:block;}
+
+/* ── AUTH ── */
+.auth-page{display:none;width:100%;height:100vh;background:var(--bg0);align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.auth-page.active{display:flex;}
+.auth-bg{position:absolute;inset:0;overflow:hidden;}
+.auth-bg-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:0.25;}
+.auth-bg-glow{position:absolute;width:600px;height:600px;filter:blur(140px);opacity:0.07;}
+.auth-bg-glow.g1{background:var(--cyan);top:-200px;left:-200px;}
+.auth-bg-glow.g2{background:var(--red);bottom:-200px;right:-200px;}
+/* sharp box — no border-radius */
+.auth-box{position:relative;z-index:2;width:440px;background:var(--card);border:1px solid var(--border2);padding:40px;box-shadow:0 0 80px rgba(0,212,255,0.06),inset 0 1px 0 rgba(0,212,255,0.06);}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center;}
+/* sharp geometric logo mark */
+.logo-mark{width:36px;height:36px;position:relative;flex-shrink:0;}
+.auth-logo-text{font-size:17px;font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.auth-logo-text span{color:var(--cyan);}
+.auth-title{font-size:21px;font-weight:700;text-align:center;margin-bottom:6px;letter-spacing:0.3px;}
+.auth-sub{font-size:13px;color:var(--text2);text-align:center;margin-bottom:28px;}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:1px;}
+.form-input{width:100%;background:var(--bg2);border:1px solid var(--border2);padding:11px 14px;color:var(--text1);font-family:'Syne',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.form-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,212,255,0.1);}
+.form-input::placeholder{color:var(--text3);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-hint{font-size:11px;color:var(--text3);margin-top:4px;}
+.form-check{display:flex;align-items:center;gap:8px;margin:14px 0;}
+.form-check input{accent-color:var(--cyan);width:13px;height:13px;}
+.form-check label{font-size:13px;color:var(--text2);}
+.form-check label a{color:var(--cyan);text-decoration:none;}
+.btn-primary{width:100%;background:var(--cyan);border:none;padding:13px;color:#000;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:opacity 0.2s;}
+.btn-primary:hover{opacity:0.88;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.auth-switch{text-align:center;font-size:13px;color:var(--text2);margin-top:20px;}
+.auth-switch a{color:var(--cyan);text-decoration:none;font-weight:700;cursor:pointer;}
+.password-wrap{position:relative;}
+.password-wrap .form-input{padding-right:42px;}
+.password-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;}
+.role-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.role-btn{background:var(--bg2);border:1px solid var(--border);padding:12px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.role-btn.selected{border-color:var(--cyan);background:rgba(0,212,255,0.06);}
+.role-btn .role-icon{margin-bottom:6px;display:flex;justify-content:center;}
+.role-btn .role-name{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;}
+.role-btn.selected .role-name{color:var(--cyan);}
+.strength-bar{height:2px;background:var(--border);margin-top:6px;overflow:hidden;}
+.strength-fill{height:100%;width:0;transition:width 0.3s,background 0.3s;}
+
+/* ── APP SHELL ── */
+.app-shell{display:none;flex:1;overflow:hidden;}
+.app-shell.active{display:flex;}
+
+/* ── TOPBAR ── */
+.topbar{height:50px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;}
+.topbar-logo{display:flex;align-items:center;gap:10px;width:var(--sidebar);flex-shrink:0;}
+.topbar-logo-text{font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.topbar-logo-text span{color:var(--cyan);}
+.topbar-live{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.8px;}
+.live-dot{width:6px;height:6px;background:var(--green);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,232,135,0.5);}50%{opacity:0.8;box-shadow:0 0 0 5px rgba(0,232,135,0);}}
+.topbar-scan{font-size:11px;color:var(--text3);margin-left:4px;font-weight:400;}
+.topbar-spacer{flex:1;}
+.topbar-crit{background:rgba(255,59,92,0.12);border:1px solid rgba(255,59,92,0.35);padding:5px 12px;font-size:11px;font-weight:800;color:var(--red);cursor:pointer;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.topbar-avatar{width:30px;height:30px;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#000;cursor:pointer;margin-left:8px;}
+
+/* ── MAIN LAYOUT ── */
+.main-layout{display:flex;flex:1;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:width 0.25s ease;}
+.sidebar.collapsed{width:52px;}
+.sidebar-toggle-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--bg2);border:1px solid var(--border2);cursor:pointer;color:var(--text2);margin:10px auto 4px;flex-shrink:0;transition:background 0.2s;}
+.sidebar-toggle-btn:hover{background:var(--bg3);color:var(--text1);}
+.sidebar-nav{flex:1;padding:8px 0;overflow-y:auto;overflow-x:hidden;}
+.nav-section{font-size:9px;font-weight:700;color:var(--text3);padding:14px 16px 4px;text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap;}
+.sidebar.collapsed .nav-section{opacity:0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:all 0.15s;border-left:2px solid transparent;white-space:nowrap;overflow:hidden;}
+.nav-item:hover{background:var(--bg2);color:var(--text1);}
+.nav-item.active{background:rgba(0,212,255,0.07);border-left-color:var(--cyan);color:var(--cyan);}
+.nav-item.active .nav-icon svg path,.nav-item.active .nav-icon svg rect,.nav-item.active .nav-icon svg circle,.nav-item.active .nav-icon svg polyline,.nav-item.active .nav-icon svg line,.nav-item.active .nav-icon svg polygon{stroke:var(--cyan);}
+.nav-icon{width:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.nav-label{font-size:12px;font-weight:600;flex:1;letter-spacing:0.3px;}
+.nav-badge{background:rgba(255,59,92,0.2);color:var(--red);font-size:10px;font-weight:700;padding:1px 6px;font-family:'JetBrains Mono',monospace;}
+.nav-badge.green{background:rgba(0,232,135,0.12);color:var(--green);}
+.sidebar.collapsed .nav-label,.sidebar.collapsed .nav-badge,.sidebar.collapsed .nav-section{display:none;}
+.sidebar.collapsed .nav-item{padding:9px 0;justify-content:center;}
+.sidebar-footer{padding:10px 12px;border-top:1px solid var(--border);}
+.ml-status-box{background:var(--bg2);border:1px solid var(--border);padding:10px 12px;}
+.ml-status-label{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.ml-bar-wrap{height:2px;background:var(--border);}
+.ml-bar{height:100%;width:73%;background:linear-gradient(90deg,var(--cyan),var(--purple));}
+.ml-bar-text{font-size:11px;color:var(--cyan);font-weight:700;margin-top:5px;font-family:'JetBrains Mono',monospace;}
+.sidebar.collapsed .ml-status-box{display:none;}
+
+/* ── CONTENT ── */
+.content-area{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg0);}
+.page{display:none;padding:24px;}
+.page.active{display:block;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;}
+.page-title{font-size:18px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;gap:10px;}
+.page-sub{font-size:10px;color:var(--text3);margin-top:4px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;}
+.page-actions{display:flex;gap:8px;}
+.btn-sm{background:var(--bg2);border:1px solid var(--border2);padding:7px 14px;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Syne',sans-serif;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.5px;}
+.btn-sm:hover{border-color:var(--cyan);color:var(--cyan);}
+.btn-sm.danger{border-color:rgba(255,59,92,0.3);color:var(--red);}
+.btn-sm.primary{background:rgba(0,212,255,0.08);border-color:var(--cyan);color:var(--cyan);}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.red::before{background:var(--red);}
+.stat-card.orange::before{background:var(--orange);}
+.stat-card.cyan::before{background:var(--cyan);}
+.stat-card.green::before{background:var(--green);}
+.stat-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;}
+.stat-value{font-size:30px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;}
+.stat-value.cyan{color:var(--cyan);}
+.stat-value.red{color:var(--red);}
+.stat-value.orange{color:var(--orange);}
+.stat-value.green{color:var(--green);}
+.stat-meta{font-size:11px;color:var(--text3);margin-top:8px;}
+.stat-meta .up{color:var(--red);}
+.stat-meta .ok{color:var(--green);}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);}
+.card-title{font-size:11px;font-weight:800;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.8px;}
+.card-sub{font-size:9px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace;letter-spacing:0.8px;}
+.card-action{font-size:10px;color:var(--cyan);cursor:pointer;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+.card-body{padding:14px 18px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 7px;font-size:9px;font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:0.8px;}
+.badge.crit{background:rgba(255,59,92,0.12);color:var(--red);border:1px solid rgba(255,59,92,0.3);}
+.badge.high{background:rgba(255,140,66,0.12);color:var(--orange);border:1px solid rgba(255,140,66,0.3);}
+.badge.med{background:rgba(255,209,102,0.12);color:var(--yellow);border:1px solid rgba(255,209,102,0.3);}
+.badge.low{background:rgba(0,232,135,0.1);color:var(--green);border:1px solid rgba(0,232,135,0.25);}
+.badge.info{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
+
+/* ── ALERT ROWS ── */
+.alert-row{border:1px solid var(--border);padding:11px 14px;margin-bottom:7px;cursor:pointer;transition:border-color 0.15s;}
+.alert-row:hover{border-color:var(--border2);}
+.alert-row.crit{border-left:2px solid var(--red);background:rgba(255,59,92,0.03);}
+.alert-row.high{border-left:2px solid var(--orange);background:rgba(255,140,66,0.03);}
+.alert-row.med{border-left:2px solid var(--yellow);background:rgba(255,209,102,0.03);}
+.alert-row.low{border-left:2px solid var(--green);}
+.alert-top{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.alert-name{font-size:12px;font-weight:700;flex:1;}
+.alert-time{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.alert-meta{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.alert-meta span{color:var(--text2);}
+
+/* ── DASHBOARD GRID ── */
+.dash-grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-bottom:14px;}
+
+/* ── IP TABLE ── */
+.ip-table{width:100%;}
+.ip-row{display:grid;grid-template-columns:140px 44px 1fr 80px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.ip-row:last-child{border-bottom:none;}
+.ip-addr{font-size:11px;font-weight:600;color:var(--cyan);font-family:'JetBrains Mono',monospace;}
+.ip-count{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.ip-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.risk-bar-wrap{height:3px;background:var(--border);}
+.risk-bar{height:100%;}
+
+/* ── TIMELINE ── */
+.timeline-chart{display:flex;align-items:flex-end;gap:2px;height:56px;padding:0 2px;}
+.tl-bar{flex:1;min-height:3px;transition:opacity 0.2s;}
+.tl-bar:hover{opacity:0.6;}
+.tl-labels{display:flex;justify-content:space-between;padding:4px 2px 0;font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+/* ── GEO MAP ── */
+.geo-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.geo-stat{background:var(--card);border:1px solid var(--border);padding:14px;text-align:center;}
+.geo-stat-val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.geo-stat-label{font-size:9px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:1px;}
+.geo-world-map{width:100%;height:360px;background:linear-gradient(180deg,#071224 0%,#060e1e 100%);border:1px solid var(--border);position:relative;overflow:hidden;margin-bottom:14px;}
+.geo-grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:36px 36px;}
+.geo-dot{position:absolute;width:9px;height:9px;cursor:pointer;transform:translate(-50%,-50%);}
+.geo-dot::after{content:'';position:absolute;inset:-4px;animation:geoPulse 2s infinite;}
+@keyframes geoPulse{0%{box-shadow:0 0 0 0 currentColor;opacity:0.7;}100%{box-shadow:0 0 0 10px transparent;opacity:0;}}
+.geo-dot.red{background:var(--red);color:rgba(255,59,92,0.4);}
+.geo-dot.orange{background:var(--orange);color:rgba(255,140,66,0.4);}
+.geo-dot.yellow{background:var(--yellow);color:rgba(255,209,102,0.4);}
+.geo-dot.cyan{background:var(--cyan);color:rgba(0,212,255,0.4);}
+.geo-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.geo-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);}
+.geo-legend-dot{width:7px;height:7px;}
+.country-table{width:100%;}
+.country-row{display:grid;grid-template-columns:28px 1fr 55px 90px 90px;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+.country-row:last-child{border-bottom:none;}
+.country-flag{font-size:16px;}
+.country-name{font-size:12px;font-weight:600;}
+.country-attacks{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.country-bar-wrap{height:3px;background:var(--border);}
+.country-bar{height:100%;background:var(--red);}
+
+/* ── LIVE LOGS ── */
+.log-stream{background:var(--card2);border:1px solid var(--border);}
+.log-stream-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--card);}
+.log-stream-title{font-size:11px;font-weight:800;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.8px;}
+.log-pause-btn{background:var(--bg2);border:1px solid var(--border2);padding:5px 12px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:0.5px;}
+.log-pause-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.log-filters{display:flex;gap:6px;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--card);flex-wrap:wrap;align-items:center;}
+.log-filter-btn{background:var(--bg2);border:1px solid var(--border);padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.15s;text-transform:uppercase;}
+.log-filter-btn.info{color:var(--blue);border-color:rgba(59,130,246,0.3);}
+.log-filter-btn.warn{color:var(--yellow);border-color:rgba(255,209,102,0.3);}
+.log-filter-btn.alert{color:var(--orange);border-color:rgba(255,140,66,0.3);}
+.log-filter-btn.crit{color:var(--red);border-color:rgba(255,59,92,0.3);}
+.log-filter-btn:hover{background:rgba(255,255,255,0.04);}
+.log-body{padding:4px 0;max-height:calc(100vh - 270px);overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.log-line{display:grid;grid-template-columns:68px 52px 1fr;gap:12px;padding:5px 18px;align-items:center;border-left:2px solid transparent;}
+.log-line:hover{background:rgba(255,255,255,0.02);}
+.log-line.ALERT{background:rgba(255,140,66,0.05);border-left-color:var(--orange);}
+.log-line.CRIT{background:rgba(255,59,92,0.06);border-left-color:var(--red);}
+.log-line.WARN{border-left-color:rgba(255,209,102,0.25);}
+.log-time{color:var(--text3);font-size:11px;}
+.log-level{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
+.log-level.INFO{color:var(--blue);}
+.log-level.WARN{color:var(--yellow);}
+.log-level.ALERT{color:var(--orange);}
+.log-level.CRIT{color:var(--red);}
+.log-msg{color:var(--text1);}
+.log-msg .hl{color:var(--orange);font-weight:700;}
+.log-msg .hlr{color:var(--red);font-weight:700;}
+
+/* ── ALERTS TABLE ── */
+.alerts-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.filter-pill{background:var(--bg2);border:1px solid var(--border);padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;}
+.filter-pill.active,.filter-pill:hover{background:rgba(0,212,255,0.06);border-color:var(--cyan);color:var(--cyan);}
+.alerts-table{width:100%;border-collapse:separate;border-spacing:0;}
+.alerts-table th{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border);text-align:left;}
+.alerts-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;}
+.alerts-table tr:hover td{background:rgba(255,255,255,0.015);}
+.alerts-table .mono{font-family:'JetBrains Mono',monospace;font-size:11px;}
+.status-dot{width:7px;height:7px;display:inline-block;margin-right:6px;}
+.status-dot.open{background:var(--red);box-shadow:0 0 5px var(--red);}
+.status-dot.investigating{background:var(--yellow);}
+.status-dot.resolved{background:var(--green);}
+.action-btn{background:none;border:1px solid var(--border);padding:3px 10px;font-size:10px;color:var(--text2);cursor:pointer;font-family:'Syne',sans-serif;transition:all 0.15s;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+.action-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* ── ML ENGINE ── */
+.ml-metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.ml-metric-card{background:var(--card);border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden;}
+.ml-metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.ml-metric-card:nth-child(1)::before{background:var(--orange);}
+.ml-metric-card:nth-child(2)::before{background:var(--cyan);}
+.ml-metric-card:nth-child(3)::before{background:var(--yellow);}
+.ml-metric-card:nth-child(4)::before{background:var(--purple);}
+.ml-metric-val{font-size:34px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.ml-metric-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-top:4px;}
+.ml-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.confidence-bar-row{display:flex;align-items:center;gap:12px;padding:8px 0;}
+.confidence-label{font-size:12px;font-weight:600;width:160px;}
+.confidence-bar-wrap{flex:1;height:6px;background:var(--border);}
+.confidence-bar{height:100%;}
+.confidence-pct{font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;width:34px;text-align:right;}
+.scatter-plot{width:100%;height:175px;background:var(--bg2);position:relative;overflow:hidden;border:1px solid var(--border);}
+.scatter-dot{position:absolute;width:7px;height:7px;transform:translate(-50%,-50%);}
+.scatter-dot.normal{background:var(--cyan);opacity:0.45;}
+.scatter-dot.anomaly{background:var(--red);box-shadow:0 0 7px var(--red);opacity:0.9;}
+.scatter-label{position:absolute;font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+/* ── ANOMALIES ── */
+.anomaly-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.anomaly-card{background:var(--card);border:1px solid var(--border);padding:16px 20px;}
+.anomaly-score-big{font-size:44px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--red);line-height:1;}
+.anomaly-label-big{font-size:9px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:1px;}
+.anomaly-list-row{display:grid;grid-template-columns:1fr 78px 100px 88px 80px;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;}
+.anomaly-list-row:last-child{border-bottom:none;}
+.anomaly-list-row:hover{background:rgba(255,255,255,0.015);}
+.anomaly-score-cell{font-family:'JetBrains Mono',monospace;font-weight:800;}
+.anomaly-score-cell.high{color:var(--red);}
+.anomaly-score-cell.med{color:var(--orange);}
+
+/* ── TRENDS ── */
+.trends-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
+.chart-bars{display:flex;align-items:flex-end;gap:4px;height:180px;padding:0 2px;}
+.chart-bar{flex:1;min-height:3px;cursor:pointer;}
+.chart-bar:hover{opacity:0.7;}
+.trend-stat{background:var(--bg2);border:1px solid var(--border);padding:14px;margin-bottom:10px;}
+.trend-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.trend-stat-val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.trend-stat-change{font-size:11px;margin-top:4px;}
+.trend-stat-change.up{color:var(--red);}
+.trend-stat-change.down{color:var(--green);}
+.attack-type-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
+.attack-type-row:last-child{border-bottom:none;}
+.attack-type-name{font-size:12px;font-weight:600;width:140px;}
+.attack-type-bar-wrap{flex:1;height:5px;background:var(--border);}
+.attack-type-bar{height:100%;}
+.attack-type-count{font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;width:36px;text-align:right;}
+
+/* ── RULES ── */
+.rules-table{width:100%;border-collapse:separate;border-spacing:0;}
+.rules-table th{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border);text-align:left;}
+.rules-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;}
+.rules-table tr:hover td{background:rgba(255,255,255,0.015);}
+.toggle-switch{position:relative;display:inline-block;width:34px;height:18px;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border2);transition:0.3s;}
+.toggle-slider:before{content:'';position:absolute;width:12px;height:12px;left:3px;bottom:3px;background:#fff;transition:0.3s;}
+.toggle-switch input:checked+.toggle-slider{background:var(--cyan);}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(16px);}
+.rule-condition{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);background:var(--bg2);padding:2px 8px;border:1px solid var(--border);}
+
+/* ── SETTINGS ── */
+.settings-layout{display:grid;grid-template-columns:190px 1fr;gap:16px;}
+.settings-nav{background:var(--card);border:1px solid var(--border);padding:6px;height:fit-content;}
+.settings-nav-item{padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text2);transition:all 0.15s;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;}
+.settings-nav-item:hover{background:var(--bg2);color:var(--text1);}
+.settings-nav-item.active{background:rgba(0,212,255,0.07);color:var(--cyan);border-left:2px solid var(--cyan);}
+.settings-section{background:var(--card);border:1px solid var(--border);padding:22px;margin-bottom:14px;}
+.settings-section-title{font-size:13px;font-weight:800;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+.settings-section-sub{font-size:11px;color:var(--text3);margin-bottom:18px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-row-label{font-size:12px;font-weight:700;}
+.settings-row-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+.settings-input{background:var(--bg2);border:1px solid var(--border2);padding:8px 12px;color:var(--text1);font-family:'Syne',sans-serif;font-size:12px;outline:none;width:220px;}
+.settings-input:focus{border-color:var(--cyan);}
+.settings-select{background:var(--bg2);border:1px solid var(--border2);padding:8px 12px;color:var(--text1);font-family:'Syne',sans-serif;font-size:12px;outline:none;width:220px;}
+.save-btn{background:var(--cyan);border:none;padding:9px 22px;color:#000;font-family:'Syne',sans-serif;font-size:11px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:0.8px;}
+.danger-zone{background:rgba(255,59,92,0.04);border:1px solid rgba(255,59,92,0.2);padding:20px;}
+.danger-zone-title{font-size:12px;font-weight:800;color:var(--red);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+
+/* ── ADMIN PROFILE ── */
+.profile-header{background:var(--card);border:1px solid var(--border);padding:26px;margin-bottom:14px;display:flex;align-items:center;gap:22px;}
+.profile-avatar-big{width:64px;height:64px;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#000;flex-shrink:0;}
+.profile-name{font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
+.profile-role{font-size:11px;color:var(--cyan);font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:0.8px;}
+.profile-email{font-size:11px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.profile-actions{margin-left:auto;display:flex;gap:8px;}
+.profile-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.profile-stat{background:var(--card);border:1px solid var(--border);padding:14px 16px;}
+.profile-stat-val{font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--cyan);}
+.profile-stat-label{font-size:9px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:0.8px;}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.activity-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+.activity-row:last-child{border-bottom:none;}
+.activity-icon{width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg2);border:1px solid var(--border);}
+.activity-text{font-size:12px;font-weight:600;}
+.activity-time{font-size:10px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.permission-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}
+.permission-row:last-child{border-bottom:none;}
+.permission-name{font-size:12px;font-weight:600;}
+
+/* ── SEARCH ── */
+.search-bar{background:var(--bg2);border:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;gap:8px;flex:1;max-width:300px;}
+.search-bar input{background:none;border:none;color:var(--text1);font-family:'Syne',sans-serif;font-size:12px;outline:none;width:100%;}
+.search-bar input::placeholder{color:var(--text3);}
+
+/* ── NOTIF ── */
+.notif-dot{position:absolute;top:-2px;right:-2px;width:7px;height:7px;background:var(--red);border:2px solid var(--bg1);}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:var(--bg0);}
+::-webkit-scrollbar-thumb{background:var(--border2);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SVG ICON DEFS ══════════════ -->
+<!-- All icons inline as reusable SVG snippets via JS -->
+<svg style="display:none">
+  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+  </symbol>
+  <symbol id="ic-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+  </symbol>
+  <symbol id="ic-logs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <rect x="3" y="3" width="18" height="18"/><line x1="7" y1="8" x2="17" y2="8"/>
+    <line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/>
+  </symbol>
+  <symbol id="ic-alerts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <polygon points="12 2 22 20 2 20"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </symbol>
+  <symbol id="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <rect x="3" y="3" width="18" height="18"/><line x1="3" y1="9" x2="21" y2="9"/>
+    <line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/>
+    <path d="M3 12c2-3 4-4 9-4s7 1 9 4"/>
+  </symbol>
+  <symbol id="ic-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <rect x="5" y="5" width="14" height="14"/><rect x="9" y="9" width="6" height="6"/>
+    <line x1="9" y1="2" x2="9" y2="5"/><line x1="15" y1="2" x2="15" y2="5"/>
+    <line x1="9" y1="19" x2="9" y2="22"/><line x1="15" y1="19" x2="15" y2="22"/>
+    <line x1="2" y1="9" x2="5" y2="9"/><line x1="2" y1="15" x2="5" y2="15"/>
+    <line x1="19" y1="9" x2="22" y2="9"/><line x1="19" y1="15" x2="22" y2="15"/>
+  </symbol>
+  <symbol id="ic-anomaly" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </symbol>
+  <symbol id="ic-trends" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+    <polyline points="17 6 23 6 23 12"/>
+  </symbol>
+  <symbol id="ic-rules" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+    <line x1="8" y1="18" x2="21" y2="18"/>
+    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+  </symbol>
+  <symbol id="ic-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <rect x="9" y="3" width="6" height="8"/>
+  </symbol>
+  <symbol id="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </symbol>
+  <symbol id="ic-eyeoff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+    <line x1="1" y1="1" x2="23" y2="23"/>
+  </symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </symbol>
+  <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
+    <polyline points="20 6 9 17 4 12"/>
+  </symbol>
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <rect x="3" y="11" width="18" height="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <rect x="2" y="4" width="20" height="16"/><polyline points="2,4 12,13 22,4"/>
+  </symbol>
+  <symbol id="ic-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+    <polyline points="15 18 9 12 15 6"/>
+  </symbol>
+  <symbol id="ic-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+    <polyline points="9 18 15 12 9 6"/>
+  </symbol>
+  <symbol id="ic-analyst" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+  </symbol>
+  <symbol id="ic-admin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </symbol>
+</svg>
+
+<!-- helper to create icon -->
+<script>
+function icon(id, size, color){
+  return '<svg width="'+size+'" height="'+size+'" style="color:'+(color||'currentColor')+'" viewBox="0 0 24 24"><use href="#'+id+'"/></svg>';
+}
+</script>
+
+<!-- ══════════════ LOGIN PAGE ══════════════ -->
+<div class="auth-page active" id="page-login">
+  <div class="auth-bg"><div class="auth-bg-grid"></div><div class="auth-bg-glow g1"></div><div class="auth-bg-glow g2"></div></div>
+  <div class="auth-box">
+    <div class="auth-logo">
+      <!-- Sharp geometric logo mark -->
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <!-- outer square frame -->
+        <rect x="1" y="1" width="34" height="34" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+        <!-- inner diamond -->
+        <polygon points="18,5 31,18 18,31 5,18" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+        <!-- center cross -->
+        <line x1="18" y1="10" x2="18" y2="26" stroke="#00d4ff" stroke-width="1.2"/>
+        <line x1="10" y1="18" x2="26" y2="18" stroke="#00d4ff" stroke-width="1.2"/>
+        <!-- corner accents -->
+        <rect x="1" y="1" width="5" height="5" fill="#00d4ff"/>
+        <rect x="30" y="1" width="5" height="5" fill="#ff3b5c"/>
+        <rect x="1" y="30" width="5" height="5" fill="#ff3b5c"/>
+        <rect x="30" y="30" width="5" height="5" fill="#00d4ff"/>
+      </svg>
+      <div class="auth-logo-text">Secure<span>Watch</span></div>
+    </div>
+    <div class="auth-title">Operator Login</div>
+    <div class="auth-sub">Authenticate to access the security console</div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input class="form-input" type="email" placeholder="admin@securewatch.local">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="password-wrap">
+        <input class="form-input" type="password" placeholder="Enter your password" id="login-pass">
+        <button class="password-toggle" onclick="togglePass('login-pass',this)" id="login-eye">
+          <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-eye"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" id="remember">
+      <label for="remember">Keep me signed in for 30 days</label>
+    </div>
+    <button class="btn-primary" onclick="goToApp()">Authenticate</button>
+    <div class="auth-divider">SSO</div>
+    <button class="btn-sm" style="width:100%;justify-content:center;padding:10px;" onclick="goToApp()">
+      <svg width="14" height="14" viewBox="0 0 24 24"><use href="#ic-lock"/></svg>
+      Sign in with LDAP / Active Directory
+    </button>
+    <div class="auth-switch">No account? <a onclick="showPage('page-signup')">Request access</a></div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);text-align:center;font-size:10px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;">
+      TLS 1.3 Encrypted &nbsp;·&nbsp; Session timeout: 8h
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SIGNUP PAGE ══════════════ -->
+<div class="auth-page" id="page-signup">
+  <div class="auth-bg"><div class="auth-bg-grid"></div><div class="auth-bg-glow g1"></div><div class="auth-bg-glow g2"></div></div>
+  <div class="auth-box" style="width:480px;">
+    <div class="auth-logo">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <rect x="1" y="1" width="34" height="34" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+        <polygon points="18,5 31,18 18,31 5,18" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="18" y1="10" x2="18" y2="26" stroke="#00d4ff" stroke-width="1.2"/>
+        <line x1="10" y1="18" x2="26" y2="18" stroke="#00d4ff" stroke-width="1.2"/>
+        <rect x="1" y="1" width="5" height="5" fill="#00d4ff"/>
+        <rect x="30" y="1" width="5" height="5" fill="#ff3b5c"/>
+        <rect x="1" y="30" width="5" height="5" fill="#ff3b5c"/>
+        <rect x="30" y="30" width="5" height="5" fill="#00d4ff"/>
+      </svg>
+      <div class="auth-logo-text">Secure<span>Watch</span></div>
+    </div>
+    <div class="auth-title">Create Account</div>
+    <div class="auth-sub">Set up your security analyst profile</div>
+    <div class="form-group">
+      <label class="form-label">Select Role</label>
+      <div class="role-selector">
+        <div class="role-btn selected" onclick="selectRole(this)">
+          <div class="role-icon"><svg width="22" height="22" style="color:var(--cyan)" viewBox="0 0 24 24"><use href="#ic-analyst"/></svg></div>
+          <div class="role-name">Analyst</div>
+        </div>
+        <div class="role-btn" onclick="selectRole(this)">
+          <div class="role-icon"><svg width="22" height="22" style="color:var(--text2)" viewBox="0 0 24 24"><use href="#ic-admin"/></svg></div>
+          <div class="role-name">Admin</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">First Name</label><input class="form-input" type="text" placeholder="John"></div>
+      <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" type="text" placeholder="Doe"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Work Email</label>
+      <input class="form-input" type="email" placeholder="you@company.com">
+      <div class="form-hint">Use your organisation email for SSO access</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="password-wrap">
+        <input class="form-input" type="password" placeholder="Min 12 chars · 1 symbol · 1 number" id="signup-pass" oninput="checkStrength(this)">
+        <button class="password-toggle" onclick="togglePass('signup-pass',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-eye"/></svg>
+        </button>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+      <div class="form-hint" id="strength-label">Password strength: —</div>
+    </div>
+    <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" placeholder="Re-enter password"></div>
+    <div class="form-check">
+      <input type="checkbox" id="terms">
+      <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+    </div>
+    <button class="btn-primary" onclick="goToApp()">Create Account</button>
+    <div class="auth-switch">Already registered? <a onclick="showPage('page-login')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- ══════════════ APP SHELL ══════════════ -->
+<div class="app-shell" id="app-shell">
+  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-logo">
+        <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+          <rect x="1" y="1" width="34" height="34" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+          <polygon points="18,5 31,18 18,31 5,18" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+          <line x1="18" y1="10" x2="18" y2="26" stroke="#00d4ff" stroke-width="1.2"/>
+          <line x1="10" y1="18" x2="26" y2="18" stroke="#00d4ff" stroke-width="1.2"/>
+          <rect x="1" y="1" width="5" height="5" fill="#00d4ff"/>
+          <rect x="30" y="1" width="5" height="5" fill="#ff3b5c"/>
+          <rect x="1" y="30" width="5" height="5" fill="#ff3b5c"/>
+          <rect x="30" y="30" width="5" height="5" fill="#00d4ff"/>
+        </svg>
+        <div class="topbar-logo-text">Secure<span>Watch</span></div>
+      </div>
+      <div class="topbar-live"><div class="live-dot"></div>Live<span class="topbar-scan">· Last scan: 2s ago</span></div>
+      <div class="topbar-spacer"></div>
+      <div class="search-bar">
+        <svg width="13" height="13" style="color:var(--text3);flex-shrink:0" viewBox="0 0 24 24"><use href="#ic-search"/></svg>
+        <input placeholder="Search IPs, events, rules...">
+      </div>
+      <div class="topbar-crit" onclick="navTo('alerts')">
+        <svg width="12" height="12" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg>
+        3 Critical
+      </div>
+      <div style="position:relative;cursor:pointer;" onclick="navTo('admin')">
+        <div class="topbar-avatar">M</div>
+        <div class="notif-dot"></div>
+      </div>
+    </div>
+
+    <div class="main-layout">
+      <!-- SIDEBAR -->
+      <div class="sidebar" id="sidebar">
+        <button class="sidebar-toggle-btn" onclick="toggleSidebar()" id="toggle-btn" title="Toggle Sidebar">
+          <svg width="14" height="14" id="toggle-icon" viewBox="0 0 24 24"><use href="#ic-chevron-left"/></svg>
+        </button>
+        <nav class="sidebar-nav">
+          <div class="nav-section">Main</div>
+          <div class="nav-item active" onclick="navTo('dashboard')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-dashboard"/></svg></span>
+            <span class="nav-label">Dashboard</span>
+          </div>
+          <div class="nav-item" onclick="navTo('live-logs')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-logs"/></svg></span>
+            <span class="nav-label">Live Logs</span>
+            <span class="nav-badge green">847</span>
+          </div>
+          <div class="nav-item" onclick="navTo('alerts')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg></span>
+            <span class="nav-label">Alerts</span>
+            <span class="nav-badge">12</span>
+          </div>
+          <div class="nav-item" onclick="navTo('geo-map')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-globe"/></svg></span>
+            <span class="nav-label">Geo Map</span>
+          </div>
+          <div class="nav-section">Analysis</div>
+          <div class="nav-item" onclick="navTo('ml-engine')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-cpu"/></svg></span>
+            <span class="nav-label">ML Engine</span>
+          </div>
+          <div class="nav-item" onclick="navTo('anomalies')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-anomaly"/></svg></span>
+            <span class="nav-label">Anomalies</span>
+            <span class="nav-badge">5</span>
+          </div>
+          <div class="nav-item" onclick="navTo('trends')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-trends"/></svg></span>
+            <span class="nav-label">Trends</span>
+          </div>
+          <div class="nav-section">Config</div>
+          <div class="nav-item" onclick="navTo('rules')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-rules"/></svg></span>
+            <span class="nav-label">Rules</span>
+          </div>
+          <div class="nav-item" onclick="navTo('settings')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-settings"/></svg></span>
+            <span class="nav-label">Settings</span>
+          </div>
+          <div class="nav-item" onclick="navTo('admin')">
+            <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-user"/></svg></span>
+            <span class="nav-label">My Account</span>
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="ml-status-box">
+            <div class="ml-status-label">ML Model Confidence</div>
+            <div class="ml-bar-wrap"><div class="ml-bar"></div></div>
+            <div class="ml-bar-text">73%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content-area">
+
+        <!-- ══ DASHBOARD ══ -->
+        <div class="page active" id="pg-dashboard">
+          <div class="page-header">
+            <div>
+              <div class="page-title">
+                <svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-dashboard"/></svg>
+                Dashboard
+              </div>
+              <div class="page-sub">Overview · Real-time monitoring</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn-sm"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>
+              <button class="btn-sm primary"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Report</button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card red"><div class="stat-label">Threats Detected</div><div class="stat-value red">24</div><div class="stat-meta"><span class="up">↑ 8</span> from yesterday</div></div>
+            <div class="stat-card orange"><div class="stat-label">Brute Force</div><div class="stat-value orange">7</div><div class="stat-meta"><span class="up">↑ 3</span> active IPs</div></div>
+            <div class="stat-card cyan"><div class="stat-label">Anomaly Score</div><div class="stat-value cyan">0.84</div><div class="stat-meta">ML confidence: HIGH</div></div>
+            <div class="stat-card green"><div class="stat-label">Logs / Min</div><div class="stat-value green">2.4K</div><div class="stat-meta"><span class="ok">✓</span> pipeline healthy</div></div>
+          </div>
+          <div class="dash-grid">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg> Live Alert Feed</div>
+                  <div class="card-sub">AI-Classified · Real-Time</div>
+                </div>
+                <span class="card-action" onclick="navTo('alerts')">View All →</span>
+              </div>
+              <div class="card-body" style="padding:10px 14px;">
+                <div class="alert-row crit"><div class="alert-top"><span class="badge crit">CRIT</span><span class="alert-name">Brute Force — SSH Login</span><span class="alert-time">00:12s</span></div><div class="alert-meta">192.168.1.44 · <span>247 attempts/min</span> · IF: -0.92</div></div>
+                <div class="alert-row crit"><div class="alert-top"><span class="badge crit">CRIT</span><span class="alert-name">Port Scan Detected</span><span class="alert-time">01:44s</span></div><div class="alert-meta">10.0.0.182 · <span>Ports 1–1024 swept</span> · ML: Port Scan</div></div>
+                <div class="alert-row high"><div class="alert-top"><span class="badge high">HIGH</span><span class="alert-name">Unusual Traffic Spike</span><span class="alert-time">03:20s</span></div><div class="alert-meta">203.88.12.5 · <span>18× baseline</span> · ML: DDoS Pattern</div></div>
+                <div class="alert-row high"><div class="alert-top"><span class="badge high">HIGH</span><span class="alert-name">New Geo Login — Russia</span><span class="alert-time">05:11s</span></div><div class="alert-meta">185.220.101.7 · <span>Tor exit node</span> · ML: Anomaly</div></div>
+                <div class="alert-row med"><div class="alert-top"><span class="badge med">MED</span><span class="alert-name">Repeated 404 Errors</span><span class="alert-time">08:45s</span></div><div class="alert-meta">172.16.5.33 · <span>Web scraping pattern</span></div></div>
+                <div class="alert-row low"><div class="alert-top"><span class="badge low">LOW</span><span class="alert-name">Slow Brute Force (Low freq)</span><span class="alert-time">14:30s</span></div><div class="alert-meta">45.142.212.100 · <span>1/min · 8hrs</span> · ML: Caught</div></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <div class="card">
+                <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-globe"/></svg> Attack Origin Map</div></div>
+                <div style="padding:10px;">
+                  <div style="width:100%;height:160px;background:linear-gradient(180deg,#071224,#060e1e);border:1px solid var(--border);position:relative;overflow:hidden;">
+                    <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:18px 18px;"></div>
+                    <div class="geo-dot red" style="left:28%;top:38%;"></div>
+                    <div class="geo-dot orange" style="left:48%;top:32%;"></div>
+                    <div class="geo-dot yellow" style="left:62%;top:28%;"></div>
+                    <div class="geo-dot cyan" style="left:82%;top:42%;"></div>
+                    <div class="geo-dot red" style="left:36%;top:56%;"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg> Top Offending IPs</div></div>
+                <div class="card-body" style="padding:6px 14px;">
+                  <div class="ip-table">
+                    <div class="ip-row"><span class="ip-addr">192.168.1.44</span><span class="ip-count">247</span><span class="ip-type" style="color:var(--red);">Brute Force</span><div class="risk-bar-wrap"><div class="risk-bar" style="width:95%;background:var(--red);"></div></div></div>
+                    <div class="ip-row"><span class="ip-addr">10.0.0.182</span><span class="ip-count">189</span><span class="ip-type" style="color:var(--orange);">Port Scan</span><div class="risk-bar-wrap"><div class="risk-bar" style="width:75%;background:var(--orange);"></div></div></div>
+                    <div class="ip-row"><span class="ip-addr">203.88.12.5</span><span class="ip-count">94</span><span class="ip-type" style="color:var(--yellow);">DDoS</span><div class="risk-bar-wrap"><div class="risk-bar" style="width:38%;background:var(--yellow);"></div></div></div>
+                    <div class="ip-row"><span class="ip-addr">185.220.101.7</span><span class="ip-count">41</span><span class="ip-type" style="color:var(--cyan);">Tor Node</span><div class="risk-bar-wrap"><div class="risk-bar" style="width:16%;background:var(--cyan);"></div></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-trends"/></svg> Alert Timeline — Last 24 Hours</div></div>
+            <div class="card-body">
+              <div class="timeline-chart" id="timeline-chart"></div>
+              <div class="tl-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>NOW</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ LIVE LOGS ══ -->
+        <div class="page" id="pg-live-logs">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-logs"/></svg> Live Logs</div><div class="page-sub">Real-time stream · 847 entries</div></div>
+            <div class="page-actions"><button class="btn-sm">Export</button><button class="btn-sm primary">Search</button></div>
+          </div>
+          <div class="log-stream">
+            <div class="log-stream-header">
+              <div class="log-stream-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-logs"/></svg> Live Log Stream</div>
+              <button class="log-pause-btn" onclick="togglePause(this)">Pause</button>
+            </div>
+            <div class="log-filters">
+              <span style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:1px;">Filter:</span>
+              <button class="log-filter-btn info">INFO</button>
+              <button class="log-filter-btn warn">WARN</button>
+              <button class="log-filter-btn alert">ALERT</button>
+              <button class="log-filter-btn crit">CRIT</button>
+              <div class="search-bar" style="max-width:180px;padding:3px 10px;"><input placeholder="IP or keyword..."></div>
+            </div>
+            <div class="log-body" id="log-body">
+              <div class="log-line"><span class="log-time">04:22:01</span><span class="log-level INFO">INFO</span><span class="log-msg">Filebeat connected to Logstash on port 5044</span></div>
+              <div class="log-line"><span class="log-time">04:22:03</span><span class="log-level INFO">INFO</span><span class="log-msg">Grok pattern matched: SSH_AUTH_FAIL from <span class="hl">192.168.1.44</span></span></div>
+              <div class="log-line WARN"><span class="log-time">04:22:03</span><span class="log-level WARN">WARN</span><span class="log-msg">Failed login attempt #3 from 192.168.1.44 — threshold approaching</span></div>
+              <div class="log-line"><span class="log-time">04:22:04</span><span class="log-level INFO">INFO</span><span class="log-msg">Normal auth: user=admin from 10.0.0.5 — SUCCESS</span></div>
+              <div class="log-line WARN"><span class="log-time">04:22:05</span><span class="log-level WARN">WARN</span><span class="log-msg">Failed login attempt #4 from 192.168.1.44</span></div>
+              <div class="log-line ALERT"><span class="log-time">04:22:05</span><span class="log-level ALERT">ALERT</span><span class="log-msg"><span class="hl">BRUTE FORCE DETECTED</span> — IP 192.168.1.44 — 5 fails in 12s — ML score: -0.92</span></div>
+              <div class="log-line"><span class="log-time">04:22:06</span><span class="log-level INFO">INFO</span><span class="log-msg">Isolation Forest: anomaly_score=-0.92 → tagged HIGH_SEVERITY</span></div>
+              <div class="log-line ALERT"><span class="log-time">04:22:07</span><span class="log-level ALERT">ALERT</span><span class="log-msg"><span class="hl">PORT SCAN</span> — IP 10.0.0.182 — ports 1–1024 in 3s — RECONNAISSANCE</span></div>
+              <div class="log-line"><span class="log-time">04:22:08</span><span class="log-level INFO">INFO</span><span class="log-msg">Kibana alert triggered → email sent to admin@securewatch.local</span></div>
+              <div class="log-line WARN"><span class="log-time">04:22:09</span><span class="log-level WARN">WARN</span><span class="log-msg">Unusual request rate from 203.88.12.5 — 18× baseline</span></div>
+              <div class="log-line CRIT"><span class="log-time">04:22:10</span><span class="log-level CRIT">CRIT</span><span class="log-msg"><span class="hlr">DDoS PATTERN</span> — ML classifier confidence: 94% — blocking rule applied</span></div>
+              <div class="log-line"><span class="log-time">04:22:11</span><span class="log-level INFO">INFO</span><span class="log-msg">Processing 2,431 log lines/min — pipeline healthy ▌</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ALERTS ══ -->
+        <div class="page" id="pg-alerts">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg> Alerts</div><div class="page-sub">12 active · 3 critical</div></div>
+            <div class="page-actions"><button class="btn-sm">Export</button><button class="btn-sm danger">Mark All Resolved</button></div>
+          </div>
+          <div class="alerts-filters">
+            <span style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:1px;">Severity:</span>
+            <div class="filter-pill active">All (12)</div>
+            <div class="filter-pill" style="color:var(--red);">Critical (3)</div>
+            <div class="filter-pill" style="color:var(--orange);">High (4)</div>
+            <div class="filter-pill" style="color:var(--yellow);">Medium (3)</div>
+            <div class="filter-pill" style="color:var(--green);">Low (2)</div>
+            <span style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:1px;margin-left:8px;">Status:</span>
+            <div class="filter-pill active">Open</div>
+            <div class="filter-pill">Investigating</div>
+            <div class="filter-pill">Resolved</div>
+          </div>
+          <div class="card">
+            <table class="alerts-table" style="width:100%;">
+              <thead><tr><th>Severity</th><th>Alert Name</th><th>Source IP</th><th>ML Classification</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge crit">CRIT</span></td><td style="font-weight:700;">Brute Force — SSH Login</td><td class="mono">192.168.1.44</td><td class="mono">Brute Force SSH (89%)</td><td class="mono">00:12s ago</td><td><span class="status-dot open"></span><span style="font-size:11px;">Open</span></td><td><button class="action-btn">Investigate</button></td></tr>
+                <tr><td><span class="badge crit">CRIT</span></td><td style="font-weight:700;">Port Scan Detected</td><td class="mono">10.0.0.182</td><td class="mono">Port Scan / Recon (94%)</td><td class="mono">01:44s ago</td><td><span class="status-dot open"></span><span style="font-size:11px;">Open</span></td><td><button class="action-btn">Investigate</button></td></tr>
+                <tr><td><span class="badge crit">CRIT</span></td><td style="font-weight:700;">DDoS Pattern Detected</td><td class="mono">203.88.12.5</td><td class="mono">DDoS Pattern (94%)</td><td class="mono">03:20s ago</td><td><span class="status-dot investigating"></span><span style="font-size:11px;">Investigating</span></td><td><button class="action-btn">View</button></td></tr>
+                <tr><td><span class="badge high">HIGH</span></td><td style="font-weight:700;">New Geo Login — Russia</td><td class="mono">185.220.101.7</td><td class="mono">Geo Anomaly (85%)</td><td class="mono">05:11s ago</td><td><span class="status-dot open"></span><span style="font-size:11px;">Open</span></td><td><button class="action-btn">Investigate</button></td></tr>
+                <tr><td><span class="badge high">HIGH</span></td><td style="font-weight:700;">Tor Exit Node Traffic</td><td class="mono">185.220.101.7</td><td class="mono">Tor Node (91%)</td><td class="mono">05:30s ago</td><td><span class="status-dot open"></span><span style="font-size:11px;">Open</span></td><td><button class="action-btn">Block IP</button></td></tr>
+                <tr><td><span class="badge high">HIGH</span></td><td style="font-weight:700;">Privilege Escalation Attempt</td><td class="mono">10.0.0.55</td><td class="mono">Priv Escalation (78%)</td><td class="mono">12:00s ago</td><td><span class="status-dot investigating"></span><span style="font-size:11px;">Investigating</span></td><td><button class="action-btn">View</button></td></tr>
+                <tr><td><span class="badge med">MED</span></td><td style="font-weight:700;">Repeated 404 Errors</td><td class="mono">172.16.5.33</td><td class="mono">Web Scraping (67%)</td><td class="mono">08:45s ago</td><td><span class="status-dot open"></span><span style="font-size:11px;">Open</span></td><td><button class="action-btn">Investigate</button></td></tr>
+                <tr><td><span class="badge low">LOW</span></td><td style="font-weight:700;">Slow Brute Force</td><td class="mono">45.142.212.100</td><td class="mono">Slow BF (71%)</td><td class="mono">14:30s ago</td><td><span class="status-dot open"></span><span style="font-size:11px;">Open</span></td><td><button class="action-btn">Watch</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ══ GEO MAP ══ -->
+        <div class="page" id="pg-geo-map">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-globe"/></svg> Geo Map</div><div class="page-sub">Attack origin tracking · Global view</div></div>
+            <div class="page-actions"><button class="btn-sm">Full Screen</button><button class="btn-sm primary">Export</button></div>
+          </div>
+          <div class="geo-stats-grid">
+            <div class="geo-stat"><div class="geo-stat-val" style="color:var(--red);">18</div><div class="geo-stat-label">Countries</div></div>
+            <div class="geo-stat"><div class="geo-stat-val" style="color:var(--orange);">247</div><div class="geo-stat-label">Active IPs</div></div>
+            <div class="geo-stat"><div class="geo-stat-val" style="color:var(--yellow);">4</div><div class="geo-stat-label">Tor Exits</div></div>
+            <div class="geo-stat"><div class="geo-stat-val" style="color:var(--cyan);">3</div><div class="geo-stat-label">Botnets</div></div>
+          </div>
+          <div class="card" style="padding:16px;">
+            <div class="geo-world-map">
+              <div class="geo-grid-lines"></div>
+              <svg width="100%" height="100%" style="position:absolute;inset:0;opacity:0.12;" viewBox="0 0 800 360">
+                <ellipse cx="160" cy="150" rx="60" ry="45" fill="#1e3a5f"/>
+                <ellipse cx="170" cy="220" rx="48" ry="65" fill="#1e3a5f"/>
+                <ellipse cx="400" cy="140" rx="80" ry="50" fill="#1e3a5f"/>
+                <ellipse cx="430" cy="230" rx="40" ry="48" fill="#1e3a5f"/>
+                <ellipse cx="590" cy="155" rx="85" ry="55" fill="#1e3a5f"/>
+                <ellipse cx="680" cy="190" rx="38" ry="48" fill="#1e3a5f"/>
+                <ellipse cx="605" cy="280" rx="28" ry="46" fill="#1e3a5f"/>
+              </svg>
+              <div class="geo-dot red" style="left:20%;top:40%;"></div>
+              <div class="geo-dot red" style="left:26%;top:56%;"></div>
+              <div class="geo-dot orange" style="left:48%;top:38%;"></div>
+              <div class="geo-dot yellow" style="left:62%;top:29%;"></div>
+              <div class="geo-dot cyan" style="left:82%;top:43%;"></div>
+              <div class="geo-dot orange" style="left:37%;top:48%;"></div>
+              <div style="position:absolute;bottom:8px;left:10px;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Hover dots for details</div>
+            </div>
+            <div class="geo-legend">
+              <div class="geo-legend-item"><div class="geo-legend-dot" style="background:var(--red);"></div>Critical</div>
+              <div class="geo-legend-item"><div class="geo-legend-dot" style="background:var(--orange);"></div>High</div>
+              <div class="geo-legend-item"><div class="geo-legend-dot" style="background:var(--yellow);"></div>Medium</div>
+              <div class="geo-legend-item"><div class="geo-legend-dot" style="background:var(--cyan);"></div>Low</div>
+            </div>
+            <div style="font-size:10px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Top Attack Origins</div>
+            <div class="country-table">
+              <div class="country-row"><span class="country-flag">🇷🇺</span><span class="country-name">Russia</span><span class="country-attacks" style="color:var(--red);">89</span><div class="country-bar-wrap"><div class="country-bar" style="width:95%;"></div></div><span class="badge crit">Brute Force</span></div>
+              <div class="country-row"><span class="country-flag">🇨🇳</span><span class="country-name">China</span><span class="country-attacks" style="color:var(--orange);">67</span><div class="country-bar-wrap"><div class="country-bar" style="width:72%;background:var(--orange);"></div></div><span class="badge high">Port Scan</span></div>
+              <div class="country-row"><span class="country-flag">🇮🇷</span><span class="country-name">Iran</span><span class="country-attacks" style="color:var(--yellow);">34</span><div class="country-bar-wrap"><div class="country-bar" style="width:37%;background:var(--yellow);"></div></div><span class="badge med">DDoS</span></div>
+              <div class="country-row"><span class="country-flag">🇰🇵</span><span class="country-name">North Korea</span><span class="country-attacks" style="color:var(--yellow);">28</span><div class="country-bar-wrap"><div class="country-bar" style="width:30%;background:var(--yellow);"></div></div><span class="badge med">APT</span></div>
+              <div class="country-row"><span class="country-flag">🇳🇬</span><span class="country-name">Nigeria</span><span class="country-attacks" style="color:var(--cyan);">19</span><div class="country-bar-wrap"><div class="country-bar" style="width:20%;background:var(--cyan);"></div></div><span class="badge low">Phishing</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ML ENGINE ══ -->
+        <div class="page" id="pg-ml-engine">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-cpu"/></svg> ML Engine</div><div class="page-sub">Isolation Forest · Attack Classification · scikit-learn</div></div>
+            <div class="page-actions"><button class="btn-sm">Retrain Model</button><button class="btn-sm primary">Full Report</button></div>
+          </div>
+          <div class="ml-metrics-grid">
+            <div class="ml-metric-card"><div class="ml-metric-val" style="color:var(--orange);">73%</div><div class="ml-metric-label">Accuracy</div></div>
+            <div class="ml-metric-card"><div class="ml-metric-val" style="color:var(--cyan);">94%</div><div class="ml-metric-label">Precision</div></div>
+            <div class="ml-metric-card"><div class="ml-metric-val" style="color:var(--yellow);">88%</div><div class="ml-metric-label">Recall</div></div>
+            <div class="ml-metric-card"><div class="ml-metric-val" style="color:var(--purple);">0.05</div><div class="ml-metric-label">Contamination</div></div>
+          </div>
+          <div class="ml-grid">
+            <div class="card">
+              <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-anomaly"/></svg> Attack Classification Confidence</div></div>
+              <div class="card-body">
+                <div class="confidence-bar-row"><span class="confidence-label">Brute Force SSH</span><div class="confidence-bar-wrap"><div class="confidence-bar" style="width:89%;background:linear-gradient(90deg,var(--red),var(--orange));"></div></div><span class="confidence-pct" style="color:var(--orange);">89%</span></div>
+                <div class="confidence-bar-row"><span class="confidence-label">Port Scan / Recon</span><div class="confidence-bar-wrap"><div class="confidence-bar" style="width:94%;background:linear-gradient(90deg,var(--orange),var(--yellow));"></div></div><span class="confidence-pct" style="color:var(--yellow);">94%</span></div>
+                <div class="confidence-bar-row"><span class="confidence-label">DDoS Pattern</span><div class="confidence-bar-wrap"><div class="confidence-bar" style="width:78%;background:linear-gradient(90deg,var(--yellow),var(--cyan));"></div></div><span class="confidence-pct" style="color:var(--cyan);">78%</span></div>
+                <div class="confidence-bar-row"><span class="confidence-label">Slow Brute Force</span><div class="confidence-bar-wrap"><div class="confidence-bar" style="width:71%;background:linear-gradient(90deg,var(--cyan),var(--blue));"></div></div><span class="confidence-pct" style="color:var(--blue);">71%</span></div>
+                <div class="confidence-bar-row"><span class="confidence-label">Geographic Anomaly</span><div class="confidence-bar-wrap"><div class="confidence-bar" style="width:85%;background:linear-gradient(90deg,var(--purple),var(--pink));"></div></div><span class="confidence-pct" style="color:var(--purple);">85%</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-trends"/></svg> Anomaly Score Distribution</div></div>
+              <div class="card-body" style="padding:10px;">
+                <div class="scatter-plot">
+                  <span class="scatter-label" style="bottom:4px;left:4px;">Time →</span>
+                  <span class="scatter-label" style="top:4px;left:4px;">Score ↑</span>
+                  <div class="scatter-dot normal" style="left:10%;top:70%;"></div><div class="scatter-dot normal" style="left:18%;top:66%;"></div>
+                  <div class="scatter-dot normal" style="left:27%;top:73%;"></div><div class="scatter-dot normal" style="left:35%;top:68%;"></div>
+                  <div class="scatter-dot normal" style="left:42%;top:74%;"></div><div class="scatter-dot normal" style="left:55%;top:67%;"></div>
+                  <div class="scatter-dot normal" style="left:65%;top:71%;"></div><div class="scatter-dot normal" style="left:76%;top:69%;"></div>
+                  <div class="scatter-dot normal" style="left:86%;top:72%;"></div>
+                  <div class="scatter-dot anomaly" style="left:22%;top:20%;"></div><div class="scatter-dot anomaly" style="left:47%;top:15%;"></div>
+                  <div class="scatter-dot anomaly" style="left:60%;top:24%;"></div><div class="scatter-dot anomaly" style="left:78%;top:18%;"></div>
+                  <div class="scatter-dot anomaly" style="left:88%;top:21%;"></div>
+                </div>
+                <div style="display:flex;gap:14px;margin-top:10px;">
+                  <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);"><div style="width:7px;height:7px;background:var(--cyan);opacity:0.5;"></div>Normal</div>
+                  <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);"><div style="width:7px;height:7px;background:var(--red);"></div>Anomaly</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-settings"/></svg> Model Configuration</div></div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+                <div><div class="stat-label" style="font-size:9px;margin-bottom:5px;">Algorithm</div><div style="font-size:13px;font-weight:700;color:var(--cyan);font-family:'JetBrains Mono',monospace;">Isolation Forest</div></div>
+                <div><div class="stat-label" style="font-size:9px;margin-bottom:5px;">n_estimators</div><div style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">100</div></div>
+                <div><div class="stat-label" style="font-size:9px;margin-bottom:5px;">Last Trained</div><div style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">2h ago</div></div>
+                <div><div class="stat-label" style="font-size:9px;margin-bottom:5px;">Training Samples</div><div style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">48,293</div></div>
+                <div><div class="stat-label" style="font-size:9px;margin-bottom:5px;">Features Used</div><div style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">12 features</div></div>
+                <div><div class="stat-label" style="font-size:9px;margin-bottom:5px;">Status</div><div style="font-size:13px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace;">Running</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ANOMALIES ══ -->
+        <div class="page" id="pg-anomalies">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-anomaly"/></svg> Anomalies</div><div class="page-sub">5 active · ML-detected</div></div>
+            <div class="page-actions"><button class="btn-sm">Export</button><button class="btn-sm primary">Re-scan</button></div>
+          </div>
+          <div class="anomaly-grid">
+            <div class="anomaly-card">
+              <div class="anomaly-score-big">-0.92</div>
+              <div class="anomaly-label-big">Highest Anomaly Score</div>
+              <div style="margin-top:12px;font-size:12px;color:var(--text2);">IP: <span style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">192.168.1.44</span> · Brute Force SSH</div>
+              <div style="margin-top:4px;font-size:10px;color:var(--text3);">Detected 00:12s ago · Rule BF-001 triggered</div>
+            </div>
+            <div class="anomaly-card">
+              <div class="scatter-plot" style="height:130px;">
+                <div class="scatter-dot normal" style="left:8%;top:74%;"></div><div class="scatter-dot normal" style="left:18%;top:70%;"></div>
+                <div class="scatter-dot normal" style="left:30%;top:73%;"></div><div class="scatter-dot normal" style="left:42%;top:68%;"></div>
+                <div class="scatter-dot normal" style="left:54%;top:75%;"></div><div class="scatter-dot normal" style="left:65%;top:71%;"></div>
+                <div class="scatter-dot normal" style="left:76%;top:70%;"></div><div class="scatter-dot normal" style="left:85%;top:73%;"></div>
+                <div class="scatter-dot anomaly" style="left:24%;top:18%;"></div>
+                <div class="scatter-dot anomaly" style="left:56%;top:22%;"></div>
+                <div class="scatter-dot anomaly" style="left:78%;top:16%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-anomaly"/></svg> All Detected Anomalies</div></div>
+            <div style="padding:0 4px;">
+              <div class="anomaly-list-row" style="font-size:9px;color:var(--text3);font-weight:800;text-transform:uppercase;letter-spacing:0.8px;"><span>Source IP</span><span>IF Score</span><span>Classification</span><span>Time</span><span>Action</span></div>
+              <div class="anomaly-list-row"><span class="mono" style="color:var(--cyan);font-size:11px;">192.168.1.44</span><span class="anomaly-score-cell high">-0.92</span><span><span class="badge crit">Brute Force</span></span><span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">00:12s</span><span><button class="action-btn">Investigate</button></span></div>
+              <div class="anomaly-list-row"><span class="mono" style="color:var(--cyan);font-size:11px;">10.0.0.182</span><span class="anomaly-score-cell high">-0.88</span><span><span class="badge crit">Port Scan</span></span><span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">01:44s</span><span><button class="action-btn">Investigate</button></span></div>
+              <div class="anomaly-list-row"><span class="mono" style="color:var(--cyan);font-size:11px;">203.88.12.5</span><span class="anomaly-score-cell med">-0.75</span><span><span class="badge high">DDoS</span></span><span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">03:20s</span><span><button class="action-btn">Block</button></span></div>
+              <div class="anomaly-list-row"><span class="mono" style="color:var(--cyan);font-size:11px;">185.220.101.7</span><span class="anomaly-score-cell med">-0.68</span><span><span class="badge high">Geo Anomaly</span></span><span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">05:11s</span><span><button class="action-btn">View</button></span></div>
+              <div class="anomaly-list-row"><span class="mono" style="color:var(--cyan);font-size:11px;">45.142.212.100</span><span class="anomaly-score-cell med">-0.61</span><span><span class="badge med">Slow BF</span></span><span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">14:30s</span><span><button class="action-btn">Watch</button></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ TRENDS ══ -->
+        <div class="page" id="pg-trends">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-trends"/></svg> Trends</div><div class="page-sub">7-day analysis · Attack patterns</div></div>
+            <div class="page-actions"><button class="btn-sm primary">7 Days</button><button class="btn-sm">30 Days</button><button class="btn-sm">Export</button></div>
+          </div>
+          <div class="trends-grid">
+            <div class="card">
+              <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-trends"/></svg> Daily Threat Volume — Last 7 Days</div></div>
+              <div class="card-body">
+                <div class="chart-bars" id="trend-bars"></div>
+                <div class="tl-labels" style="padding-top:6px;"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="trend-stat"><div class="trend-stat-label">Avg Daily Threats</div><div class="trend-stat-val" style="color:var(--orange);">18.4</div><div class="trend-stat-change up">↑ 23% vs last week</div></div>
+              <div class="trend-stat"><div class="trend-stat-label">Peak Hour</div><div class="trend-stat-val" style="color:var(--cyan);">02:00</div><div class="trend-stat-change" style="color:var(--text3);">UTC · Most attacks</div></div>
+              <div class="trend-stat"><div class="trend-stat-label">Most Common Attack</div><div class="trend-stat-val" style="color:var(--red);font-size:16px;">Brute Force</div><div class="trend-stat-change up">↑ 34% this week</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg> Attack Type Breakdown</div></div>
+            <div class="card-body">
+              <div class="attack-type-row"><span class="attack-type-name">Brute Force SSH</span><div class="attack-type-bar-wrap"><div class="attack-type-bar" style="width:78%;background:var(--red);"></div></div><span class="attack-type-count" style="color:var(--red);">89</span></div>
+              <div class="attack-type-row"><span class="attack-type-name">Port Scan</span><div class="attack-type-bar-wrap"><div class="attack-type-bar" style="width:60%;background:var(--orange);"></div></div><span class="attack-type-count" style="color:var(--orange);">67</span></div>
+              <div class="attack-type-row"><span class="attack-type-name">DDoS Pattern</span><div class="attack-type-bar-wrap"><div class="attack-type-bar" style="width:40%;background:var(--yellow);"></div></div><span class="attack-type-count" style="color:var(--yellow);">45</span></div>
+              <div class="attack-type-row"><span class="attack-type-name">Geo Anomaly</span><div class="attack-type-bar-wrap"><div class="attack-type-bar" style="width:28%;background:var(--cyan);"></div></div><span class="attack-type-count" style="color:var(--cyan);">31</span></div>
+              <div class="attack-type-row"><span class="attack-type-name">Slow Brute Force</span><div class="attack-type-bar-wrap"><div class="attack-type-bar" style="width:18%;background:var(--purple);"></div></div><span class="attack-type-count" style="color:var(--purple);">20</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ RULES ══ -->
+        <div class="page" id="pg-rules">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-rules"/></svg> Rules</div><div class="page-sub">Detection rules · 8 active</div></div>
+            <div class="page-actions"><button class="btn-sm primary">+ New Rule</button><button class="btn-sm">Import Rules</button></div>
+          </div>
+          <div class="card">
+            <table class="rules-table" style="width:100%;">
+              <thead><tr><th>ID</th><th>Rule Name</th><th>Condition</th><th>Severity</th><th>Action</th><th>Hits Today</th><th>Enabled</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text3);">BF-001</td><td style="font-weight:700;">SSH Brute Force</td><td><span class="rule-condition">failed_logins &gt; 5 in 60s</span></td><td><span class="badge crit">CRIT</span></td><td style="font-size:11px;color:var(--orange);">Alert + Block</td><td class="mono">247</td><td><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+                <tr><td class="mono" style="color:var(--text3);">PS-002</td><td style="font-weight:700;">Port Scan Detection</td><td><span class="rule-condition">ports_scanned &gt; 100 in 3s</span></td><td><span class="badge crit">CRIT</span></td><td style="font-size:11px;color:var(--orange);">Alert + Log</td><td class="mono">189</td><td><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+                <tr><td class="mono" style="color:var(--text3);">DD-003</td><td style="font-weight:700;">DDoS Pattern</td><td><span class="rule-condition">req_rate &gt; 18x baseline</span></td><td><span class="badge high">HIGH</span></td><td style="font-size:11px;color:var(--orange);">Alert + Rate Limit</td><td class="mono">94</td><td><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+                <tr><td class="mono" style="color:var(--text3);">GE-004</td><td style="font-weight:700;">Geo Anomaly Login</td><td><span class="rule-condition">country NOT IN whitelist</span></td><td><span class="badge high">HIGH</span></td><td style="font-size:11px;color:var(--cyan);">Alert + MFA</td><td class="mono">41</td><td><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+                <tr><td class="mono" style="color:var(--text3);">ML-005</td><td style="font-weight:700;">ML Anomaly Score</td><td><span class="rule-condition">if_score &lt; -0.7</span></td><td><span class="badge crit">CRIT</span></td><td style="font-size:11px;color:var(--orange);">Alert + Quarantine</td><td class="mono">312</td><td><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+                <tr><td class="mono" style="color:var(--text3);">SB-006</td><td style="font-weight:700;">Slow Brute Force</td><td><span class="rule-condition">failed_logins &gt; 50 in 8h</span></td><td><span class="badge med">MED</span></td><td style="font-size:11px;color:var(--cyan);">Alert Only</td><td class="mono">28</td><td><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+                <tr><td class="mono" style="color:var(--text3);">PE-007</td><td style="font-weight:700;">Privilege Escalation</td><td><span class="rule-condition">sudo_fail &gt; 3 in 5min</span></td><td><span class="badge high">HIGH</span></td><td style="font-size:11px;color:var(--orange);">Alert + Block</td><td class="mono">7</td><td><label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label></td><td><button class="action-btn">Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ══ SETTINGS ══ -->
+        <div class="page" id="pg-settings">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-settings"/></svg> Settings</div><div class="page-sub">System configuration</div></div>
+            <div class="page-actions"><button class="btn-sm primary" onclick="alert('Settings saved!')">Save All</button></div>
+          </div>
+          <div class="settings-layout">
+            <div class="settings-nav">
+              <div class="settings-nav-item active" onclick="switchSettings(this,'s-general')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-settings"/></svg> General</div>
+              <div class="settings-nav-item" onclick="switchSettings(this,'s-notifications')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-bell"/></svg> Notifications</div>
+              <div class="settings-nav-item" onclick="switchSettings(this,'s-ml')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-cpu"/></svg> ML Config</div>
+              <div class="settings-nav-item" onclick="switchSettings(this,'s-integrations')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><rect x="2" y="2" width="6" height="6"/><rect x="16" y="2" width="6" height="6"/><rect x="9" y="16" width="6" height="6"/><line x1="5" y1="8" x2="5" y2="19" /><line x1="5" y1="19" x2="12" y2="19" /><line x1="19" y1="8" x2="19" y2="19"/><line x1="19" y1="19" x2="15" y2="19"/></svg> Integrations</div>
+              <div class="settings-nav-item" onclick="switchSettings(this,'s-security')"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-lock"/></svg> Security</div>
+              <div class="settings-nav-item" onclick="switchSettings(this,'s-danger')" style="color:var(--red);"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg> Danger Zone</div>
+            </div>
+            <div>
+              <div class="settings-section" id="s-general">
+                <div class="settings-section-title">General Settings</div>
+                <div class="settings-section-sub">Basic system configuration and display preferences</div>
+                <div class="settings-row"><div><div class="settings-row-label">System Name</div><div class="settings-row-sub">Display name for this SecureWatch instance</div></div><input class="settings-input" value="SecureWatch AI — Prod"></div>
+                <div class="settings-row"><div><div class="settings-row-label">Timezone</div><div class="settings-row-sub">Used for all timestamps and reports</div></div><select class="settings-select"><option>UTC</option><option>IST (UTC+5:30)</option><option>EST (UTC-5)</option></select></div>
+                <div class="settings-row"><div><div class="settings-row-label">Log Retention Period</div><div class="settings-row-sub">How long to store raw log data</div></div><select class="settings-select"><option>30 days</option><option>60 days</option><option>90 days</option></select></div>
+                <div class="settings-row"><div><div class="settings-row-label">Auto-refresh Interval</div><div class="settings-row-sub">Dashboard data refresh rate</div></div><select class="settings-select"><option>2 seconds</option><option>5 seconds</option><option>10 seconds</option></select></div>
+                <div style="margin-top:16px;"><button class="save-btn" onclick="alert('Saved!')">Save Changes</button></div>
+              </div>
+              <div class="settings-section" id="s-notifications" style="display:none;">
+                <div class="settings-section-title">Notification Settings</div>
+                <div class="settings-section-sub">Configure alert delivery channels</div>
+                <div class="settings-row"><div><div class="settings-row-label">Email Alerts</div><div class="settings-row-sub">Send email for CRIT and HIGH severity</div></div><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div class="settings-row"><div><div class="settings-row-label">Alert Email Address</div></div><input class="settings-input" value="admin@securewatch.local" type="email"></div>
+                <div class="settings-row"><div><div class="settings-row-label">Slack Webhook</div><div class="settings-row-sub">Post alerts to Slack channel</div></div><label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+                <div class="settings-row"><div><div class="settings-row-label">Minimum Severity</div><div class="settings-row-sub">Only alert above this level</div></div><select class="settings-select"><option>Critical only</option><option selected>High and above</option><option>Medium and above</option></select></div>
+                <div style="margin-top:16px;"><button class="save-btn" onclick="alert('Saved!')">Save Changes</button></div>
+              </div>
+              <div class="settings-section" id="s-ml" style="display:none;">
+                <div class="settings-section-title">ML Engine Configuration</div>
+                <div class="settings-section-sub">Tune Isolation Forest model parameters</div>
+                <div class="settings-row"><div><div class="settings-row-label">Contamination Rate</div><div class="settings-row-sub">Expected fraction of anomalies (0.01–0.5)</div></div><input class="settings-input" value="0.05" type="number"></div>
+                <div class="settings-row"><div><div class="settings-row-label">n_estimators</div><div class="settings-row-sub">Number of trees in Isolation Forest</div></div><input class="settings-input" value="100" type="number"></div>
+                <div class="settings-row"><div><div class="settings-row-label">Auto-retrain</div><div class="settings-row-sub">Retrain model every 24 hours</div></div><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div class="settings-row"><div><div class="settings-row-label">Alert Threshold Score</div><div class="settings-row-sub">Flag as anomaly if IF score is below this</div></div><input class="settings-input" value="-0.7" type="number"></div>
+                <div style="margin-top:16px;"><button class="save-btn" onclick="alert('Saved! Model will retrain.')">Save + Retrain</button></div>
+              </div>
+              <div class="settings-section" id="s-integrations" style="display:none;">
+                <div class="settings-section-title">Integrations</div>
+                <div class="settings-section-sub">Connect SecureWatch to your infrastructure</div>
+                <div class="settings-row"><div><div class="settings-row-label">Elasticsearch URL</div></div><input class="settings-input" value="http://localhost:9200"></div>
+                <div class="settings-row"><div><div class="settings-row-label">Kibana URL</div></div><input class="settings-input" value="http://localhost:5601"></div>
+                <div class="settings-row"><div><div class="settings-row-label">Logstash Port</div></div><input class="settings-input" value="5044" type="number"></div>
+                <div class="settings-row"><div><div class="settings-row-label">Filebeat Status</div></div><span style="color:var(--green);font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace;">Connected</span></div>
+                <div style="margin-top:16px;"><button class="save-btn" onclick="alert('Testing connections...')">Test + Save</button></div>
+              </div>
+              <div class="settings-section" id="s-security" style="display:none;">
+                <div class="settings-section-title">Security Settings</div>
+                <div class="settings-section-sub">Access control and authentication</div>
+                <div class="settings-row"><div><div class="settings-row-label">Two-Factor Authentication</div><div class="settings-row-sub">Require 2FA for all admin accounts</div></div><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+                <div class="settings-row"><div><div class="settings-row-label">Session Timeout</div></div><select class="settings-select"><option>1 hour</option><option selected>8 hours</option><option>24 hours</option></select></div>
+                <div class="settings-row"><div><div class="settings-row-label">IP Whitelist</div><div class="settings-row-sub">Restrict dashboard access by IP</div></div><input class="settings-input" placeholder="192.168.1.0/24"></div>
+                <div class="settings-row"><div><div class="settings-row-label">LDAP / SSO Integration</div></div><label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+                <div style="margin-top:16px;"><button class="save-btn" onclick="alert('Security settings saved!')">Save Changes</button></div>
+              </div>
+              <div class="danger-zone" id="s-danger" style="display:none;">
+                <div class="danger-zone-title">Danger Zone</div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:16px;">These actions are irreversible. Proceed with caution.</div>
+                <div class="settings-row" style="border-color:rgba(255,59,92,0.15);"><div><div class="settings-row-label">Flush All Logs</div><div class="settings-row-sub">Permanently delete all stored log data</div></div><button class="btn-sm danger" onclick="confirm('Type FLUSH to confirm')">Flush Logs</button></div>
+                <div class="settings-row" style="border-color:rgba(255,59,92,0.15);"><div><div class="settings-row-label">Reset ML Model</div><div class="settings-row-sub">Wipe trained model, start from scratch</div></div><button class="btn-sm danger">Reset Model</button></div>
+                <div class="settings-row" style="border-bottom:none;"><div><div class="settings-row-label">Delete All Users</div><div class="settings-row-sub">Remove all non-admin accounts</div></div><button class="btn-sm danger">Delete Users</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ ADMIN ══ -->
+        <div class="page" id="pg-admin">
+          <div class="page-header">
+            <div><div class="page-title"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#ic-user"/></svg> My Account</div><div class="page-sub">Profile · Permissions · Activity</div></div>
+            <div class="page-actions"><button class="btn-sm danger" onclick="showPage('page-login')">Sign Out</button></div>
+          </div>
+          <div class="profile-header">
+            <div class="profile-avatar-big">M</div>
+            <div>
+              <div class="profile-name">Mohammed Admin</div>
+              <div class="profile-role">System Administrator</div>
+              <div class="profile-email">admin@securewatch.local</div>
+              <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+                <span class="badge info">Admin</span>
+                <span class="badge low">Active</span>
+                <span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;">Last login: Today 04:20 UTC</span>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <button class="btn-sm">Edit Profile</button>
+              <button class="btn-sm primary">Change Password</button>
+            </div>
+          </div>
+          <div class="profile-stats-grid">
+            <div class="profile-stat"><div class="profile-stat-val">247</div><div class="profile-stat-label">Alerts Reviewed</div></div>
+            <div class="profile-stat"><div class="profile-stat-val">18</div><div class="profile-stat-label">Rules Created</div></div>
+            <div class="profile-stat"><div class="profile-stat-val">94%</div><div class="profile-stat-label">Uptime This Month</div></div>
+            <div class="profile-stat"><div class="profile-stat-val">14d</div><div class="profile-stat-label">Days Active</div></div>
+          </div>
+          <div class="profile-grid">
+            <div class="card">
+              <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-logs"/></svg> Recent Activity</div></div>
+              <div class="card-body" style="padding:6px 16px;">
+                <div class="activity-row"><div class="activity-icon"><svg width="14" height="14" style="color:var(--red)" viewBox="0 0 24 24"><use href="#ic-alerts"/></svg></div><div><div class="activity-text">Investigated Brute Force alert</div><div class="activity-time">2 minutes ago</div></div></div>
+                <div class="activity-row"><div class="activity-icon"><svg width="14" height="14" style="color:var(--cyan)" viewBox="0 0 24 24"><use href="#ic-rules"/></svg></div><div><div class="activity-text">Created rule: SSH Brute Force BF-001</div><div class="activity-time">1 hour ago</div></div></div>
+                <div class="activity-row"><div class="activity-icon"><svg width="14" height="14" style="color:var(--purple)" viewBox="0 0 24 24"><use href="#ic-cpu"/></svg></div><div><div class="activity-text">Retrained ML model</div><div class="activity-time">2 hours ago</div></div></div>
+                <div class="activity-row"><div class="activity-icon"><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div><div><div class="activity-text">Resolved: Config File Access alert</div><div class="activity-time">4 hours ago</div></div></div>
+                <div class="activity-row"><div class="activity-icon"><svg width="14" height="14" style="color:var(--orange)" viewBox="0 0 24 24"><use href="#ic-settings"/></svg></div><div><div class="activity-text">Updated ML contamination to 0.05</div><div class="activity-time">Yesterday</div></div></div>
+                <div class="activity-row"><div class="activity-icon"><svg width="14" height="14" style="color:var(--cyan)" viewBox="0 0 24 24"><use href="#ic-lock"/></svg></div><div><div class="activity-text">Logged in from 192.168.1.1</div><div class="activity-time">Yesterday</div></div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title"><svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-lock"/></svg> Permissions</div></div>
+              <div class="card-body" style="padding:6px 16px;">
+                <div class="permission-row"><span class="permission-name">View Dashboard</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row"><span class="permission-name">View Live Logs</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row"><span class="permission-name">Manage Alerts</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row"><span class="permission-name">Create / Edit Rules</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row"><span class="permission-name">Manage Users</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row"><span class="permission-name">Retrain ML Model</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row"><span class="permission-name">Access Settings</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+                <div class="permission-row" style="border-bottom:none;"><span class="permission-name">Delete System Data</span><svg width="14" height="14" style="color:var(--green)" viewBox="0 0 24 24"><use href="#ic-check"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end content-area -->
+    </div><!-- end main-layout -->
+  </div>
+</div><!-- end app-shell -->
+
+<script>
+// ── CHARTS ──
+function buildTimeline(){
+  const c=document.getElementById('timeline-chart');
+  if(!c)return;
+  const h=[15,18,12,20,14,10,16,22,30,25,38,44,50,48,42,38,52,58,60,54,46,40,44,48,52,58,62,66,58,50,44,38,36,30,28,32,36,28,22,18,20,24,26,22,18];
+  c.innerHTML=h.map(v=>`<div class="tl-bar" style="height:${v}px;background:${v>55?'var(--red)':v>40?'var(--orange)':v>25?'var(--yellow)':'var(--cyan)'};"></div>`).join('');
+}
+function buildTrendBars(){
+  const c=document.getElementById('trend-bars');
+  if(!c)return;
+  const d=[12,18,14,24,32,28,20],mx=Math.max(...d);
+  c.innerHTML=d.map(v=>`<div class="chart-bar" style="height:${(v/mx)*100}%;background:linear-gradient(to top,var(--red),var(--orange));"></div>`).join('');
+}
+buildTimeline();buildTrendBars();
+
+// ── AUTH ──
+function showPage(id){
+  document.querySelectorAll('.auth-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('app-shell').classList.remove('active');
+  document.getElementById(id).classList.add('active');
+}
+function goToApp(){
+  document.querySelectorAll('.auth-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('app-shell').classList.add('active');
+}
+function togglePass(id,btn){
+  const inp=document.getElementById(id);
+  const isPass=inp.type==='password';
+  inp.type=isPass?'text':'password';
+  btn.innerHTML=isPass
+    ?'<svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-eyeoff"/></svg>'
+    :'<svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-eye"/></svg>';
+}
+function selectRole(el){
+  document.querySelectorAll('.role-btn').forEach(b=>{b.classList.remove('selected');b.querySelector('.role-icon svg').style.color='var(--text2)';});
+  el.classList.add('selected');
+  el.querySelector('.role-icon svg').style.color='var(--cyan)';
+}
+function checkStrength(inp){
+  const v=inp.value;let s=0;
+  if(v.length>=12)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;
+  const fill=document.getElementById('strength-fill'),lbl=document.getElementById('strength-label');
+  const cfg=[{w:'0%',bg:'transparent',t:'Password strength: —'},{w:'25%',bg:'var(--red)',t:'Weak'},{w:'50%',bg:'var(--orange)',t:'Fair'},{w:'75%',bg:'var(--yellow)',t:'Good'},{w:'100%',bg:'var(--green)',t:'Strong'}];
+  fill.style.width=cfg[s].w;fill.style.background=cfg[s].bg;lbl.textContent='Strength: '+cfg[s].t;lbl.style.color=cfg[s].bg;
+}
+
+// ── NAVIGATION ──
+const pageMap={dashboard:'pg-dashboard','live-logs':'pg-live-logs',alerts:'pg-alerts','geo-map':'pg-geo-map','ml-engine':'pg-ml-engine',anomalies:'pg-anomalies',trends:'pg-trends',rules:'pg-rules',settings:'pg-settings',admin:'pg-admin'};
+const labelMap={dashboard:'Dashboard','live-logs':'Live Logs',alerts:'Alerts','geo-map':'Geo Map','ml-engine':'ML Engine',anomalies:'Anomalies',trends:'Trends',rules:'Rules',settings:'Settings',admin:'My Account'};
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  const pg=document.getElementById(pageMap[page]);
+  if(pg)pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(i=>{
+    if(i.querySelector('.nav-label')?.textContent.trim()===labelMap[page])i.classList.add('active');
+  });
+  if(page==='dashboard')buildTimeline();
+  if(page==='trends')buildTrendBars();
+}
+
+// ── SIDEBAR TOGGLE ──
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar'),ic=document.getElementById('toggle-icon');
+  sb.classList.toggle('collapsed');
+  ic.innerHTML=sb.classList.contains('collapsed')?'<use href="#ic-chevron-right"/>':'<use href="#ic-chevron-left"/>';
+}
+
+// ── SETTINGS TABS ──
+function switchSettings(el,id){
+  document.querySelectorAll('.settings-nav-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.settings-section,.danger-zone').forEach(s=>s.style.display='none');
+  el.classList.add('active');
+  document.getElementById(id).style.display='block';
+}
+
+// ── LOG PAUSE ──
+function togglePause(btn){btn.textContent=btn.textContent==='Pause'?'Resume':'Pause';}
+
+// ── LIVE LOG ANIMATION ──
+const msgs=[
+  ['INFO','Normal auth: user=root from 10.0.1.2 — SUCCESS'],
+  ['WARN','Failed login attempt from 45.12.88.200 — attempt #2'],
+  ['INFO','Grok pattern matched: SSH_AUTH_FAIL from 192.168.5.22'],
+  ['ALERT','ANOMALY DETECTED — IP 10.0.0.55 — IF score: -0.81'],
+  ['INFO','Processing 2,431 log lines/min — pipeline healthy'],
+  ['WARN','Unusual request rate from 172.20.1.1 — 5× baseline'],
+  ['CRIT','PRIVILEGE ESCALATION — sudo_fail × 5 in 120s'],
+];
+let li=0;
+setInterval(()=>{
+  const body=document.getElementById('log-body');
+  if(!body)return;
+  const paused=document.querySelector('.log-pause-btn')?.textContent==='Resume';
+  if(paused)return;
+  const [level,msg]=msgs[li%msgs.length];
+  const now=new Date();
+  const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const div=document.createElement('div');
+  div.className=`log-line ${level}`;
+  div.innerHTML=`<span class="log-time">${t}</span><span class="log-level ${level}">${level}</span><span class="log-msg">${msg}</span>`;
+  body.appendChild(div);
+  body.scrollTop=body.scrollHeight;
+  li++;
+},2500);
+</script>
+</body>
+</html>
