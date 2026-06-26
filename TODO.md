@@ -1,8 +1,0 @@
-- [ ] STEP 1: Update backend/models/database.py to match spec (engine, SessionLocal, Base=DeclarativeBase(), get_db generator)
-- [ ] STEP 2-8: Update existing model files to exactly match spec (UUID PKs, BIGSERIAL PKs, JSONB, FKs with back_populates, TIMESTAMPTZ server_default=text("NOW()"), to_dict)
-- [ ] STEP 9: Ensure backend/models/**init**.py imports/exports Base + all 8 models (User, Alert, Rule, RuleHit, MLResult, AuditLog, BlockedIP, Setting)
-- [x] Alembic: update backend/alembic/env.py to import Base from models and use DATABASE_URL from config
-- [ ] Run: alembic revision --autogenerate -m "initial_schema"
-- [ ] Run: alembic upgrade head
-- [ ] Verify: docker exec ... psql -c "\dt" shows 8 tables
-- [ ] Verify: alembic current shows head
