@@ -296,7 +296,6 @@ def flush_logs(
     db.query(RuleHit).delete()
     db.query(MLResult).delete()
     db.query(Alert).delete()
-    db.commit()
 
     db.add(
         AuditLog(
@@ -330,7 +329,6 @@ def reset_ml(
     from models.ml_result import MLResult
 
     db.query(MLResult).delete()
-    db.commit()
 
     db.add(
         AuditLog(
@@ -363,8 +361,10 @@ def delete_users(
 
     from models.user import User as UserModel
 
-    db.query(UserModel).filter(UserModel.id != current_user.id).delete()
-    db.commit()
+    deleted = db.query(UserModel).filter(
+        UserModel.id != current_user.id,
+        UserModel.role != 'admin',
+    ).delete()
 
     db.add(
         AuditLog(
@@ -379,7 +379,7 @@ def delete_users(
     db.commit()
 
     return {
-        "data": {"message": "All non-admin users deleted successfully"},
+        "data": {"message": f"{deleted} non-admin user(s) deleted successfully"},
         "message": "ok",
         "status": "success",
         "timestamp": datetime.now(timezone.utc).isoformat(),

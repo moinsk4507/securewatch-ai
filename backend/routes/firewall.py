@@ -48,7 +48,7 @@ def get_blocked_ips(
 @router.post("/firewall/block", status_code=201)
 def block_ip(
     body: BlockIPBody,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
     request: Request = None,
 ):
@@ -63,19 +63,22 @@ def block_ip(
 
     existing = db.query(BlockedIP).filter(
         BlockedIP.ip_address == ip,
-        BlockedIP.is_active == True,
     ).first()
     if existing:
-        raise HTTPException(status_code=409, detail="IP is already blocked")
-
-    blocked = BlockedIP(
-        ip_address=ip,
-        reason=body.reason,
-        blocked_by=current_user.id,
-    )
-    db.add(blocked)
-    db.commit()
-    db.refresh(blocked)
+        if existing.is_active:
+            raise HTTPException(status_code=409, detail="IP is already blocked")
+        existing.is_active = True
+        existing.reason = body.reason
+        existing.blocked_by = current_user.id
+        existing.created_at = datetime.now(timezone.utc)
+        blocked = existing
+    else:
+        blocked = BlockedIP(
+            ip_address=ip,
+            reason=body.reason,
+            blocked_by=current_user.id,
+        )
+        db.add(blocked)
 
     db.add(
         AuditLog(
@@ -91,6 +94,7 @@ def block_ip(
         )
     )
     db.commit()
+    db.refresh(blocked)
 
     return {
         "data": blocked.to_dict(),
@@ -115,7 +119,6 @@ def unblock_ip(
         raise HTTPException(status_code=404, detail="Blocked IP not found")
 
     blocked.is_active = False
-    db.commit()
 
     db.add(
         AuditLog(
