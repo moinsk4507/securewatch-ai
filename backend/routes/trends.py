@@ -112,6 +112,18 @@ def get_trend_stats(
     )
     top_attack = top_type_row[0] if top_type_row else "None"
 
+    peak_hour_row = (
+        db.query(
+            func.extract('hour', Alert.created_at).label('hour'),
+            func.count(Alert.id).label('count'),
+        )
+        .filter(Alert.created_at >= since_7d)
+        .group_by(func.extract('hour', Alert.created_at))
+        .order_by(func.count(Alert.id).desc())
+        .first()
+    )
+    peak_hour = f"{int(peak_hour_row.hour):02d}:00" if peak_hour_row else "00:00"
+
     pct_change = 0
     if total_14d > 0:
         pct_change = round(((total_7d - total_14d) / total_14d) * 100, 1)
@@ -122,7 +134,7 @@ def get_trend_stats(
     return {
         "data": {
             "avg_daily": avg_daily,
-            "peak_hour": "14:00",
+            "peak_hour": peak_hour,
             "top_attack": top_attack,
             "pct_change": pct_str,
         },

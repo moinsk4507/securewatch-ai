@@ -79,7 +79,6 @@ def change_password(
         raise HTTPException(status_code=400, detail="New password must be at least 12 characters")
 
     current_user.password = hash_password(body.newPass)
-    db.commit()
 
     db.add(
         AuditLog(
@@ -114,12 +113,13 @@ def get_user_stats(current_user: User = Depends(get_current_user), db: Session =
         AuditLog.action == "RULE_CREATE",
     ).count()
 
+    days_active = (datetime.now(timezone.utc) - current_user.created_at).days if current_user.created_at else 0
+
     return {
         "data": {
             "alerts_reviewed": alerts_reviewed,
             "rules_created": rules_created,
-            "uptime": "94%",
-            "days_active": 14,
+            "days_active": days_active,
         },
         "message": "ok",
         "status": "success",
