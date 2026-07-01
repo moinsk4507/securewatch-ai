@@ -9,6 +9,10 @@ from routes.stats import router as stats_router
 from routes.alerts import router as alerts_router
 from routes.geo import router as geo_router
 from routes.rules import router as rules_router
+from routes.user import router as user_router
+from routes.settings import router as settings_router
+from routes.firewall import router as firewall_router
+from routes.trends import router as trends_router
 
 app = FastAPI()
 
@@ -51,6 +55,10 @@ app.include_router(stats_router, prefix="/api")
 app.include_router(alerts_router, prefix="/api")
 app.include_router(geo_router, prefix="/api")
 app.include_router(rules_router, prefix="/api")
+app.include_router(user_router, prefix="/api")
+app.include_router(settings_router, prefix="/api")
+app.include_router(firewall_router, prefix="/api")
+app.include_router(trends_router, prefix="/api")
 
 
 @app.exception_handler(RequestValidationError)
