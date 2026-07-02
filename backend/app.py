@@ -14,7 +14,22 @@ from routes.settings import router as settings_router
 from routes.firewall import router as firewall_router
 from routes.trends import router as trends_router
 
-app = FastAPI()
+from routes.ml import router as ml_router
+from routes.logs import router as logs_router
+from routes.system import router as system_router
+
+from utils.log_generator import start_log_generator
+
+import contextlib
+import threading
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    t = threading.Thread(target=start_log_generator, daemon=True)
+    t.start()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 engine = create_engine(DATABASE_URL)
 
@@ -59,6 +74,10 @@ app.include_router(user_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
 app.include_router(firewall_router, prefix="/api")
 app.include_router(trends_router, prefix="/api")
+
+app.include_router(ml_router, prefix="/api")
+app.include_router(logs_router, prefix="/api")
+app.include_router(system_router, prefix="/api")
 
 
 @app.exception_handler(RequestValidationError)
