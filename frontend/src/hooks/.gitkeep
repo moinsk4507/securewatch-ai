@@ -1,0 +1,3 @@
+# Hooks will be created in Phase F3
+# useAutoRefresh.js — setInterval data refresh
+# useWebSocket.js  — WebSocket connection + reconnect
