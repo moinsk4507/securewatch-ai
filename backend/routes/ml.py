@@ -99,24 +99,23 @@ def ml_scores() -> Dict[str, Any]:
 
 @router.get("/api/ml/anomalies")
 def ml_anomalies() -> Dict[str, Any]:
-    # Query MLResult where is_anomaly=True order if_score ASC
-    # If empty return 5 demo anomalies
+    # Query MLResult where is_anomaly=True AND linked to a valid alert
     db = SessionLocal()
     try:
-        # Avoid hard dependency on model fields by using SQL/text
         res = db.execute(
             text(
-                "SELECT id, if_score, is_anomaly, created_at "
-                "FROM ml_results "
-                "WHERE is_anomaly = true "
-                "ORDER BY if_score ASC "
+                "SELECT mr.id, mr.if_score, mr.is_anomaly, mr.created_at, "
+                "mr.source_ip, mr.rf_class, mr.alert_id "
+                "FROM ml_results mr "
+                "INNER JOIN alerts a ON mr.alert_id = a.id "
+                "WHERE mr.is_anomaly = true "
+                "ORDER BY mr.if_score ASC "
                 "LIMIT 50"
             )
         ).fetchall()
 
         anomalies: List[Dict[str, Any]] = []
         for row in res:
-            # row can be RowMapping; handle generically
             row_dict = dict(row._mapping) if hasattr(row, "_mapping") else dict(row)
             anomalies.append(
                 {
@@ -124,6 +123,9 @@ def ml_anomalies() -> Dict[str, Any]:
                     "if_score": row_dict.get("if_score"),
                     "created_at": str(row_dict.get("created_at")) if row_dict.get("created_at") is not None else None,
                     "is_anomaly": row_dict.get("is_anomaly", True),
+                    "source_ip": row_dict.get("source_ip"),
+                    "rf_class": row_dict.get("rf_class"),
+                    "alert_id": str(row_dict.get("alert_id")) if row_dict.get("alert_id") is not None else None,
                 }
             )
 
@@ -132,15 +134,7 @@ def ml_anomalies() -> Dict[str, Any]:
     finally:
         db.close()
 
-    # Demo anomalies
-    demo = [
-        {"id": "demo-1", "if_score": -0.94, "created_at": "demo", "is_anomaly": True},
-        {"id": "demo-2", "if_score": -0.88, "created_at": "demo", "is_anomaly": True},
-        {"id": "demo-3", "if_score": -0.80, "created_at": "demo", "is_anomaly": True},
-        {"id": "demo-4", "if_score": -0.73, "created_at": "demo", "is_anomaly": True},
-        {"id": "demo-5", "if_score": -0.71, "created_at": "demo", "is_anomaly": True},
-    ]
-    return {"anomalies": demo, "total": 5}
+    return {"anomalies": [], "total": 0}
 
 
 @router.get("/api/ml/config")
