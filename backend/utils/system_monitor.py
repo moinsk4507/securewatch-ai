@@ -51,32 +51,32 @@ def get_network_metrics() -> Dict[str, Any]:
 
 
 def get_top_processes(limit: int = 10) -> Dict[str, Any]:
-    processes: List[Dict[str, Any]] = []
-    for p in psutil.process_iter(attrs=["pid", "name", "cpu_percent", "memory_percent", "status"]):
-        try:
-            # Initialize cpu_percent measurement by calling once; but attrs may already exist.
-            # We'll use what's provided; if 0 skip as requested.
-            cpu_percent = p.info.get("cpu_percent", 0.0) or 0.0
-            if cpu_percent <= 0:
+    try:
+        processes: List[Dict[str, Any]] = []
+        for p in psutil.process_iter(attrs=["pid", "name", "cpu_percent", "memory_percent", "status"]):
+            try:
+                cpu_percent = p.info.get("cpu_percent", 0.0) or 0.0
+                if cpu_percent <= 0:
+                    continue
+                processes.append(
+                    {
+                        "pid": p.info.get("pid"),
+                        "name": p.info.get("name") or "",
+                        "cpu_percent": round(float(cpu_percent), 2),
+                        "memory_percent": round(float(p.info.get("memory_percent", 0.0) or 0.0), 2),
+                        "status": p.info.get("status") or "unknown",
+                    }
+                )
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
-            processes.append(
-                {
-                    "pid": p.info.get("pid"),
-                    "name": p.info.get("name") or "",
-                    "cpu_percent": round(float(cpu_percent), 2),
-                    "memory_percent": round(float(p.info.get("memory_percent", 0.0) or 0.0), 2),
-                    "status": p.info.get("status") or "unknown",
-                }
-            )
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            continue
-        except Exception:
-            continue
+            except Exception:
+                continue
 
-    processes.sort(key=lambda x: x["cpu_percent"], reverse=True)
-    processes = processes[: max(0, int(limit))]
-
-    return {"processes": processes, "total": len(processes)}
+        processes.sort(key=lambda x: x["cpu_percent"], reverse=True)
+        processes = processes[: max(0, int(limit))]
+        return {"processes": processes, "total": len(processes)}
+    except Exception:
+        return {"processes": [], "total": 0}
 
 
 def get_system_health_score() -> Dict[str, Any]:

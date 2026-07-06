@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import requests as http_requests
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -245,34 +247,28 @@ def test_connections(
 ):
     settings = _merge_settings(db)
 
-    import urllib.request
-    import urllib.error
+    # Kibana, Logstash, and Filebeat are NOT deployed in this project's architecture.
+    # Report them as explicitly not configured so the frontend can surface that clearly.
+    not_configured = {"connected": False, "configured": False}
 
-    es_status = "unknown"
-    kibana_status = "unknown"
-    logstash_status = "unknown"
-    filebeat_status = "unknown"
-
+    # Elasticsearch: probe with a short GET; treat HTTP 200 as success.
+    # es_url comes from the DB-merged settings (default: http://localhost:9200).
+    es_url = settings.get("es_url", "http://localhost:9200")
     try:
-        req = urllib.request.Request(settings.get("es_url", "http://localhost:9200"), method="HEAD")
-        urllib.request.urlopen(req, timeout=3)
-        es_status = "connected"
-    except Exception:
-        es_status = "disconnected"
-
-    try:
-        req = urllib.request.Request(settings.get("kibana_url", "http://localhost:5601"), method="HEAD")
-        urllib.request.urlopen(req, timeout=3)
-        kibana_status = "connected"
-    except Exception:
-        kibana_status = "disconnected"
+        resp = http_requests.get(es_url, timeout=3)
+        es_connected = resp.status_code == 200
+        print(f"[test-connections] Elasticsearch {es_url} → HTTP {resp.status_code} connected={es_connected}")
+        es_result = {"connected": es_connected, "configured": True}
+    except Exception as e:
+        print(f"[test-connections] Elasticsearch check failed ({type(e).__name__}): {e}")
+        es_result = {"connected": False, "configured": True}
 
     return {
         "data": {
-            "elasticsearch": es_status,
-            "kibana": kibana_status,
-            "logstash": logstash_status,
-            "filebeat": filebeat_status,
+            "elasticsearch": es_result,
+            "kibana": not_configured,
+            "logstash": not_configured,
+            "filebeat": not_configured,
         },
         "message": "ok",
         "status": "success",
