@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import exc as sa_exc
 from sqlalchemy.orm import Session
 
 from models.audit_log import AuditLog
@@ -29,26 +30,73 @@ DEFAULT_RULES_DATA = [
 
 
 def _seed_rules(db: Session) -> None:
-    if db.query(Rule).count() == 0:
-        for r in DEFAULT_RULES_DATA:
-            db.add(Rule(**r))
+    """
+    Seed DEFAULT_RULES_DATA exactly once when the rules table is empty.
+
+    Concurrency-safe: if multiple requests race during startup, inserts that
+    violate the primary key will be swallowed so the request won't fail.
+    """
+    try:
+        rules_count = db.query(Rule).count()
+    except sa_exc.SQLAlchemyError:
+        # If DB isn't reachable yet / transient failure, don't crash request.
+        return
+
+    if rules_count != 0:
+        return
+
+    for r in DEFAULT_RULES_DATA:
+        try:
+            with db.begin_nested():
+                db.add(Rule(**r))
+                db.flush()  # detect PK conflicts early
+        except sa_exc.IntegrityError:
+            # Another concurrent request already inserted this rule.
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            continue
+        except sa_exc.SQLAlchemyError:
+            # Any other DB issue during seeding: don't fail the API call.
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            return
+
+    try:
         db.commit()
+    except sa_exc.SQLAlchemyError:
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def _audit(db: Session, action: str, user: User, rule: Rule, details: Dict[str, Any] | None = None):
-    db.add(
-        AuditLog(
-            user_id=user.id,
-            user_email=user.email,
-            user_role=user.role,
-            action=action,
-            resource="rule",
-            resource_id=rule.id,
-            details=details or {"rule_name": rule.name},
-            success=True,
+    """
+    Audit logging must never break the main CRUD response.
+    """
+    try:
+        db.add(
+            AuditLog(
+                user_id=user.id,
+                user_email=user.email,
+                user_role=user.role,
+                action=action,
+                resource="rule",
+                resource_id=rule.id,
+                details=details or {"rule_name": rule.name},
+                success=True,
+            )
         )
-    )
-    db.commit()
+        db.commit()
+    except sa_exc.SQLAlchemyError:
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 class RuleCreateBody(BaseModel):
@@ -74,17 +122,27 @@ def get_rules(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _seed_rules(db)
-    rules = db.query(Rule).order_by(Rule.id).all()
-    return {
-        "data": {
-            "rules": [r.to_dict() for r in rules],
-            "total": len(rules),
-        },
-        "message": "ok",
-        "status": "success",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+    try:
+        _seed_rules(db)
+        rules = db.query(Rule).order_by(Rule.id).all()
+        return {
+            "data": {
+                "rules": [r.to_dict() for r in rules],
+                "total": len(rules),
+            },
+            "message": "ok",
+            "status": "success",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except sa_exc.SQLAlchemyError as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Database error while fetching rules", "status": "error"},
+        )
 
 
 @router.post("/rules", status_code=201)
@@ -93,40 +151,50 @@ def create_rule(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _seed_rules(db)
+    try:
+        _seed_rules(db)
 
-    last = db.query(Rule).order_by(Rule.id.desc()).first()
-    next_num = 1
-    if last:
+        last = db.query(Rule).order_by(Rule.id.desc()).first()
+        next_num = 1
+        if last:
+            try:
+                next_num = int(last.id.split("-")[-1]) + 1
+            except (IndexError, ValueError):
+                next_num = db.query(Rule).count() + 1
+
+        rule_id = f"RULE-{next_num:03d}"
+
+        rule = Rule(
+            id=rule_id,
+            name=body.name,
+            condition=body.condition,
+            severity=body.severity,
+            action=body.action,
+            description=body.description,
+            enabled=body.enabled,
+            created_by=current_user.id,
+        )
+        db.add(rule)
+        db.commit()
+        db.refresh(rule)
+
+        _audit(db, "RULE_CREATE", current_user, rule)
+
+        return {
+            "data": rule.to_dict(),
+            "message": "ok",
+            "status": "success",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except sa_exc.SQLAlchemyError as e:
         try:
-            next_num = int(last.id.split("-")[-1]) + 1
-        except (IndexError, ValueError):
-            next_num = db.query(Rule).count() + 1
-
-    rule_id = f"RULE-{next_num:03d}"
-
-    rule = Rule(
-        id=rule_id,
-        name=body.name,
-        condition=body.condition,
-        severity=body.severity,
-        action=body.action,
-        description=body.description,
-        enabled=body.enabled,
-        created_by=current_user.id,
-    )
-    db.add(rule)
-    db.commit()
-    db.refresh(rule)
-
-    _audit(db, "RULE_CREATE", current_user, rule)
-
-    return {
-        "data": rule.to_dict(),
-        "message": "ok",
-        "status": "success",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Database error while creating rule", "status": "error"},
+        )
 
 
 @router.patch("/rules/{rule_id}")
@@ -136,28 +204,40 @@ def patch_rule(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _seed_rules(db)
+    try:
+        _seed_rules(db)
 
-    rule = db.query(Rule).filter(Rule.id == rule_id).first()
-    if not rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
+        rule = db.query(Rule).filter(Rule.id == rule_id).first()
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
 
-    update_data = body.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(rule, key, value)
-    rule.updated_at = datetime.now(timezone.utc)
+        update_data = body.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(rule, key, value)
+        rule.updated_at = datetime.now(timezone.utc)
 
-    db.commit()
-    db.refresh(rule)
+        db.commit()
+        db.refresh(rule)
 
-    _audit(db, "RULE_UPDATE", current_user, rule, {"updated_fields": list(update_data.keys())})
+        _audit(db, "RULE_UPDATE", current_user, rule, {"updated_fields": list(update_data.keys())})
 
-    return {
-        "data": rule.to_dict(),
-        "message": "ok",
-        "status": "success",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+        return {
+            "data": rule.to_dict(),
+            "message": "ok",
+            "status": "success",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except HTTPException:
+        raise
+    except sa_exc.SQLAlchemyError:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Database error while updating rule", "status": "error"},
+        )
 
 
 @router.put("/rules/{rule_id}")
@@ -167,31 +247,43 @@ def put_rule(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _seed_rules(db)
+    try:
+        _seed_rules(db)
 
-    rule = db.query(Rule).filter(Rule.id == rule_id).first()
-    if not rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
+        rule = db.query(Rule).filter(Rule.id == rule_id).first()
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
 
-    rule.name = body.name
-    rule.condition = body.condition
-    rule.severity = body.severity
-    rule.action = body.action
-    rule.description = body.description
-    rule.enabled = body.enabled
-    rule.updated_at = datetime.now(timezone.utc)
+        rule.name = body.name
+        rule.condition = body.condition
+        rule.severity = body.severity
+        rule.action = body.action
+        rule.description = body.description
+        rule.enabled = body.enabled
+        rule.updated_at = datetime.now(timezone.utc)
 
-    db.commit()
-    db.refresh(rule)
+        db.commit()
+        db.refresh(rule)
 
-    _audit(db, "RULE_UPDATE", current_user, rule)
+        _audit(db, "RULE_UPDATE", current_user, rule)
 
-    return {
-        "data": rule.to_dict(),
-        "message": "ok",
-        "status": "success",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+        return {
+            "data": rule.to_dict(),
+            "message": "ok",
+            "status": "success",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except HTTPException:
+        raise
+    except sa_exc.SQLAlchemyError:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Database error while replacing rule", "status": "error"},
+        )
 
 
 @router.delete("/rules/{rule_id}")
@@ -200,20 +292,32 @@ def delete_rule(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _seed_rules(db)
+    try:
+        _seed_rules(db)
 
-    rule = db.query(Rule).filter(Rule.id == rule_id).first()
-    if not rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
+        rule = db.query(Rule).filter(Rule.id == rule_id).first()
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
 
-    db.delete(rule)
-    db.commit()
+        db.delete(rule)
+        db.commit()
 
-    _audit(db, "RULE_DELETE", current_user, rule)
+        _audit(db, "RULE_DELETE", current_user, rule)
 
-    return {
-        "data": {"message": f"Rule {rule_id} deleted"},
-        "message": "ok",
-        "status": "success",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+        return {
+            "data": {"message": f"Rule {rule_id} deleted"},
+            "message": "ok",
+            "status": "success",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except HTTPException:
+        raise
+    except sa_exc.SQLAlchemyError:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Database error while deleting rule", "status": "error"},
+        )

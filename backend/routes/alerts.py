@@ -87,7 +87,7 @@ def update_alert_status(
     try:
         uid = UUID(alert_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid alert ID format")
+        raise HTTPException(status_code=404, detail="Alert not found")
 
     alert = db.query(Alert).filter(Alert.id == uid).first()
     if not alert:

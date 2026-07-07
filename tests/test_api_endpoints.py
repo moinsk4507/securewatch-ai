@@ -32,7 +32,7 @@ def test_alerts_filter_by_severity(client, auth_headers):
         assert a.get("severity") == "critical"
 
 
-def test_alert_status_update(client, auth_headers):
+def test_alert_status_update(client, auth_headers, seeded_alert):
     # Create deterministic selection: take first alert from per_page=1
     list_resp = client.get("/api/alerts", headers=auth_headers, params={"per_page": 1})
     assert list_resp.status_code == 200

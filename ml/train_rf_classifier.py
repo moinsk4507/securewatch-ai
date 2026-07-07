@@ -45,7 +45,6 @@ def train_rf_classifier(
     n = len(df)
     split = int(n * 0.8)
     X_train, X_test = X[:split], X[split:]
-    y_train, y_test = y[:split], y[split:]
 
     model.fit(X_train, y_train)
     preds = model.predict(X_test)

@@ -37,7 +37,7 @@ LAYER 1 — AUTHENTICATION (must exist before any protected API)
                               ↓
 LAYER 2 — CORE API (must exist before ML and frontend)
 ┌─────────────────────────────────────────────────────────────┐
-│  Alert model  →  Rule model  →  Stats route  →  Geo route  │
+│  Alert model  →  Rule model  →  Stats route  →  Geo route   │
 │       ↓              ↓              ↓              ↓        │
 │  Seeded data   Seeded rules   Returns stats   Returns geo   │
 └─────────────────────────────────────────────────────────────┘
@@ -46,12 +46,12 @@ LAYER 3 — ML PIPELINE (must exist before ML dashboard pages)
 ┌─────────────────────────────────────────────────────────────┐
 │  Feature extraction  →  Train IF  →  Train RF  →  pipeline  │
 │          ↓                  ↓            ↓           ↓      │
-│  12 features ready   model.pkl    classifier.pkl  Scores   │
+│  12 features ready   model.pkl    classifier.pkl  Scores    │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 LAYER 4 — ELK PIPELINE (must exist before live logs)
 ┌─────────────────────────────────────────────────────────────┐
-│  Logstash conf  →  Filebeat  →  ES indexes  →  WS stream   │
+│  Logstash conf  →  Filebeat  →  ES indexes  →  WS stream    │
 │        ↓               ↓            ↓              ↓        │
 │  Grok patterns  Ships logs    Logs indexed    WS sends      │
 └─────────────────────────────────────────────────────────────┘
@@ -2288,18 +2288,18 @@ DEMO
 
 ## Risk Mitigation Table
 
-| Risk | Probability | Impact | Mitigation |
-|---|---|---|---|
-| ELK Stack OOM on laptop | High | High | Set ES_JAVA_OPTS=-Xms512m -Xmx512m for dev |
-| Docker build fails on M1/M2 Mac | Medium | High | Add platform: linux/amd64 to compose services |
-| ML accuracy below 70% | Low | Medium | Increase training data to 100k rows, adjust class weights |
-| JWT library version conflict | Low | High | Pin exact versions in requirements.txt |
-| Vite proxy not routing WS correctly | Medium | Medium | Test WS connection early Day 3 Hour 5 |
-| Recharts not rendering in Docker | Low | Medium | Use ResponsiveContainer with explicit height wrapper |
-| PostgreSQL connection pool exhausted | Low | High | Set pool_size=5 for dev, add pool_pre_ping=True |
-| SSE CORS error in browser | Medium | Medium | Add Access-Control-Allow-Origin header to SSE route |
-| react-hot-toast borderRadius override | Low | Low | Add borderRadius: 0 to toastOptions style |
-| Alembic migration conflict | Low | Medium | Use --autogenerate only, never edit migration files |
+| Risk                                  | Probability | Impact | Mitigation                                                |
+| ------------------------------------- | ----------- | ------ | --------------------------------------------------------- |
+| ELK Stack OOM on laptop               | High        | High   | Set ES_JAVA_OPTS=-Xms512m -Xmx512m for dev                |
+| Docker build fails on M1/M2 Mac       | Medium      | High   | Add platform: linux/amd64 to compose services             |
+| ML accuracy below 70%                 | Low         | Medium | Increase training data to 100k rows, adjust class weights |
+| JWT library version conflict          | Low         | High   | Pin exact versions in requirements.txt                    |
+| Vite proxy not routing WS correctly   | Medium      | Medium | Test WS connection early Day 3 Hour 5                     |
+| Recharts not rendering in Docker      | Low         | Medium | Use ResponsiveContainer with explicit height wrapper      |
+| PostgreSQL connection pool exhausted  | Low         | High   | Set pool_size=5 for dev, add pool_pre_ping=True           |
+| SSE CORS error in browser             | Medium      | Medium | Add Access-Control-Allow-Origin header to SSE route       |
+| react-hot-toast borderRadius override | Low         | Low    | Add borderRadius: 0 to toastOptions style                 |
+| Alembic migration conflict            | Low         | Medium | Use --autogenerate only, never edit migration files       |
 
 ---
 
@@ -2363,10 +2363,10 @@ TARGET: 35-40 meaningful commits across 5 days
 
 ## 5-Day Summary
 
-| Day | Primary Output | Success Gate |
-|---|---|---|
-| Day 1 | Full FastAPI backend, all 48 routes, auth, JWT, seeded DB | pytest 25 tests pass, /api/health returns 200 |
-| Day 2 | ML pipeline trained, ELK stack parsing logs, alerts in DB | End-to-end: inject log → ML scores → alert in DB |
-| Day 3 | React app, 8 pages complete, login/dashboard/logs/alerts working | Login works, dashboard auto-refreshes, SSE streams |
-| Day 4 | All 12 pages complete, WebSocket with reconnect, RBAC | All 12 pages navigate without errors, WS reconnects |
-| Day 5 | Full Docker stack, tests passing, demo data, README | docker-compose up → 30-step demo completes without error |
+| Day   | Primary Output                                                   | Success Gate                                             |
+| ----- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| Day 1 | Full FastAPI backend, all 48 routes, auth, JWT, seeded DB        | pytest 25 tests pass, /api/health returns 200            |
+| Day 2 | ML pipeline trained, ELK stack parsing logs, alerts in DB        | End-to-end: inject log → ML scores → alert in DB         |
+| Day 3 | React app, 8 pages complete, login/dashboard/logs/alerts working | Login works, dashboard auto-refreshes, SSE streams       |
+| Day 4 | All 12 pages complete, WebSocket with reconnect, RBAC            | All 12 pages navigate without errors, WS reconnects      |
+| Day 5 | Full Docker stack, tests passing, demo data, README              | docker-compose up → 30-step demo completes without error |
