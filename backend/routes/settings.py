@@ -254,14 +254,25 @@ def test_connections(
     # Elasticsearch: probe with a short GET; treat HTTP 200 as success.
     # es_url comes from the DB-merged settings (default: http://localhost:9200).
     es_url = settings.get("es_url", "http://localhost:9200")
-    try:
-        resp = http_requests.get(es_url, timeout=3)
-        es_connected = resp.status_code == 200
-        print(f"[test-connections] Elasticsearch {es_url} → HTTP {resp.status_code} connected={es_connected}")
-        es_result = {"connected": es_connected, "configured": True}
-    except Exception as e:
-        print(f"[test-connections] Elasticsearch check failed ({type(e).__name__}): {e}")
-        es_result = {"connected": False, "configured": True}
+    es_connected = False
+    # Retry once under load before declaring Elasticsearch unreachable.
+    for attempt in range(2):
+        try:
+            resp = http_requests.get(es_url, timeout=5)
+            if resp.status_code == 200:
+                es_connected = True
+                print(f"[test-connections] Elasticsearch {es_url} → HTTP {resp.status_code} connected={es_connected}")
+                break
+            print(
+                f"[test-connections] Elasticsearch {es_url} → HTTP {resp.status_code} attempt={attempt} connected={es_connected}"
+            )
+        except Exception as e:
+            print(f"[test-connections] Elasticsearch check failed ({type(e).__name__}): {e} attempt={attempt}")
+            if attempt == 0:
+                continue
+
+    es_result = {"connected": es_connected, "configured": True}
+
 
     return {
         "data": {
