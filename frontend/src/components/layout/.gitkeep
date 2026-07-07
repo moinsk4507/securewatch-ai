@@ -1,0 +1,4 @@
+# Layout components will be created in Phase F4
+# AppLayout.jsx — Topbar + Sidebar + children wrapper
+# Topbar.jsx    — Logo, live dot, search, alerts, avatar
+# Sidebar.jsx   — Nav items, badges, collapse toggle, ML status
