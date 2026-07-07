@@ -1,4 +1,4 @@
-def test_full_login_to_alert_flow(client, auth_headers):
+def test_full_login_to_alert_flow(client, auth_headers, seeded_alert):
     # Login -> already covered by admin token; here verify can list alerts and update status
     list_resp = client.get("/api/alerts", headers=auth_headers, params={"per_page": 1})
     assert list_resp.status_code == 200

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from utils.security import get_current_user
+from utils.security import get_current_user, require_admin
 from utils.system_monitor import (
     get_cpu_metrics,
     get_ram_metrics,
@@ -8,7 +8,12 @@ from utils.system_monitor import (
     get_system_health_score,
     get_top_processes,
 )
-from utils.log_generator import get_recent_logs
+from utils.log_generator import (
+    get_recent_logs,
+    enable_simulation,
+    disable_simulation,
+    is_simulation_enabled,
+)
 
 router = APIRouter()
 
@@ -32,8 +37,11 @@ def system_metrics(user=Depends(get_current_user)):
 
 @router.get("/api/system/processes")
 def system_processes(limit: int = 10, user=Depends(get_current_user)):
-    top = get_top_processes(limit=limit)
-    return {"processes": top["processes"], "total": top["total"]}
+    try:
+        top = get_top_processes(limit=limit)
+        return {"processes": top["processes"], "total": top["total"]}
+    except Exception:
+        return {"processes": [], "total": 0}
 
 
 @router.get("/api/system/health")
@@ -45,3 +53,25 @@ def system_health(user=Depends(get_current_user)):
 def system_logs(limit: int = 20, user=Depends(get_current_user)):
     logs = get_recent_logs(limit=limit)
     return {"logs": logs, "total": len(logs)}
+
+
+# ---------------------------------------------------------------------------
+# Attack simulation control
+# ---------------------------------------------------------------------------
+
+@router.post("/api/system/simulate/start")
+def simulate_start(user=Depends(require_admin)):
+    enable_simulation()
+    return {"message": "Attack simulation started", "enabled": True}
+
+
+@router.post("/api/system/simulate/stop")
+def simulate_stop(user=Depends(require_admin)):
+    disable_simulation()
+    return {"message": "Attack simulation stopped", "enabled": False}
+
+
+@router.get("/api/system/simulate/status")
+def simulate_status(user=Depends(get_current_user)):
+    return {"enabled": is_simulation_enabled()}
+

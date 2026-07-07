@@ -10,8 +10,8 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        ENTITY RELATIONSHIP DIAGRAM                       │
-│                                                                           │
+│                        ENTITY RELATIONSHIP DIAGRAM                      │
+│                                                                         │
 │  ┌──────────────┐         ┌──────────────────┐       ┌───────────────┐  │
 │  │    users     │────────<│   audit_logs     │       │    rules      │  │
 │  │──────────────│  1:many │──────────────────│       │───────────────│  │
@@ -22,11 +22,11 @@
 │  │ role         │         │ ip_address       │       │ action        │  │
 │  │ created_at   │         │ timestamp        │       │ enabled       │  │
 │  │ last_login   │         └──────────────────┘       │ hits_today    │  │
-│  │ is_active    │                                     │ created_by    │  │
-│  └──────────────┘                                     └───────────────┘  │
-│         │                                                     │           │
-│         │ 1:many                                              │ 1:many    │
-│         ▼                                                     ▼           │
+│  │ is_active    │                                    │ created_by    │  │
+│  └──────────────┘                                    └───────────────┘  │
+│         │                                                     │         │
+│         │ 1:many                                              │ 1:many  │
+│         ▼                                                     ▼         │
 │  ┌──────────────┐         ┌──────────────────┐       ┌───────────────┐  │
 │  │   alerts     │         │   ml_results     │       │ rule_hits     │  │
 │  │──────────────│         │──────────────────│       │───────────────│  │
@@ -35,20 +35,20 @@
 │  │ name         │         │ if_score         │       │ alert_id (FK) │  │
 │  │ source_ip    │         │ rf_class         │       │ triggered_at  │  │
 │  │ attack_type  │         │ confidence       │       └───────────────┘  │
-│  │ if_score     │         │ features (JSONB) │                           │
+│  │ if_score     │         │ features (JSONB) │                          │
 │  │ status       │         │ alert_id (FK)    │       ┌───────────────┐  │
 │  │ country      │         │ created_at       │       │   settings    │  │
 │  │ raw_features │         └──────────────────┘       │───────────────│  │
-│  │ assigned_to  │                                     │ key (PK)      │  │
+│  │ assigned_to  │                                    │ key (PK)      │  │
 │  │ created_at   │         ┌──────────────────┐       │ value         │  │
 │  └──────────────┘         │  blocked_ips     │       │ updated_at    │  │
-│                            │──────────────────│       └───────────────┘  │
-│                            │ id (PK)          │                           │
-│                            │ ip_address       │                           │
-│                            │ reason           │                           │
-│                            │ blocked_by (FK)  │                           │
-│                            │ created_at       │                           │
-│                            └──────────────────┘                           │
+│                           │──────────────────│       └───────────────┘  │
+│                           │ id (PK)          │                          │
+│                           │ ip_address       │                          │
+│                           │ reason           │                          │
+│                           │ blocked_by (FK)  │                          │
+│                           │ created_at       │                          │
+│                           └──────────────────┘                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1252,6 +1252,54 @@ class BlockedIPListResponse(BaseModel):
     total:       int
 ```
 
+### 4.10 System schema
+```python
+# schemas/system.py
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+
+class SystemMetricsResponse(BaseModel):
+    cpu:       float        # percentage 0-100
+    ram:       float        # percentage 0-100
+    disk:      float        # percentage 0-100
+    network:   float        # MB/s
+    timestamp: str          # ISO 8601
+
+
+class ProcessItem(BaseModel):
+    pid:     int
+    name:    str
+    cpu:     float
+    ram:     float
+    status:  str
+
+
+class SystemProcessesResponse(BaseModel):
+    processes: list[ProcessItem]
+    total:     int
+
+
+class SystemHealthResponse(BaseModel):
+    score:   int            # 0-100
+    status:  str            # "healthy" | "degraded" | "critical"
+    cpu_ok:  bool
+    ram_ok:  bool
+    disk_ok: bool
+
+
+class SystemLogItem(BaseModel):
+    timestamp: str
+    level:     str          # "INFO" | "WARN" | "ERROR"
+    message:   str
+    source:    Optional[str] = None
+
+
+class SystemLogsResponse(BaseModel):
+    logs:  list[SystemLogItem]
+    total: int
+```
 ---
 
 ## 5. JWT Structure
@@ -2070,6 +2118,13 @@ POST   /api/anomalies/{id}/investigate JWT analyst None             MessageRespo
 HEALTH
 ──────
 GET    /api/health               None        None                   {status: "ok", version: str}
+
+SYSTEM ROUTES
+─────────────
+GET    /api/system/metrics       JWT any     None                   {cpu, ram, disk, network, timestamp}
+GET    /api/system/processes     JWT any     None                   {processes[], total}
+GET    /api/system/health        JWT any     None                   {score, status, cpu_ok, ram_ok, disk_ok}
+GET    /api/system/logs          JWT any     None                   {logs[], total}
 ```
 
 ---
@@ -2131,7 +2186,7 @@ This schema document defines every database table, every SQLAlchemy model, every
 **Total tables:** 8
 **Total models:** 8
 **Total Pydantic schemas:** 47
-**Total API routes:** 48
+**Total API routes:** 52
 **Total audit actions:** 24
 **Total error codes:** 18
 **Total permissions:** 13

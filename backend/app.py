@@ -1,5 +1,8 @@
+import os
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from config import DATABASE_URL
@@ -18,18 +21,33 @@ from routes.ml import router as ml_router
 from routes.logs import router as logs_router
 from routes.system import router as system_router
 
-from utils.log_generator import start_log_generator
+from utils.log_generator import start_log_generator, disable_simulation
 
 import contextlib
 import threading
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Explicitly ensure simulation is OFF on every startup (clean/quiet dashboard)
+    disable_simulation()
     t = threading.Thread(target=start_log_generator, daemon=True)
     t.start()
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+# --- CORS -----------------------------------------------------------
+# Read allowed origins from .env (CORS_ORIGINS=http://localhost:3000)
+_raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 engine = create_engine(DATABASE_URL)
 
@@ -75,9 +93,9 @@ app.include_router(settings_router, prefix="/api")
 app.include_router(firewall_router, prefix="/api")
 app.include_router(trends_router, prefix="/api")
 
-app.include_router(ml_router, prefix="/api")
-app.include_router(logs_router, prefix="/api")
-app.include_router(system_router, prefix="/api")
+app.include_router(ml_router)
+app.include_router(logs_router)
+app.include_router(system_router)
 
 
 @app.exception_handler(RequestValidationError)

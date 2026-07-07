@@ -65,7 +65,10 @@ def get_current_user(
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    user: User | None = db.query(User).filter(User.id == user_uuid).first()
+    try:
+        user: User | None = db.query(User).filter(User.id == user_uuid).first()
+    except Exception:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     if not user or user.is_active is not True:
         raise HTTPException(status_code=401, detail="Inactive or not found")
 
