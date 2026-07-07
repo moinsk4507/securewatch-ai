@@ -51,9 +51,18 @@ def get_network_metrics() -> Dict[str, Any]:
 
 
 def get_top_processes(limit: int = 10) -> Dict[str, Any]:
+    import time
+
     try:
         processes: List[Dict[str, Any]] = []
+        start = time.time()
+        # Overall budget guard: avoid hanging under heavy CPU contention.
+        time_budget_s = 3
+
         for p in psutil.process_iter(attrs=["pid", "name", "cpu_percent", "memory_percent", "status"]):
+            if time.time() - start > time_budget_s:
+                break
+
             try:
                 cpu_percent = p.info.get("cpu_percent", 0.0) or 0.0
                 if cpu_percent <= 0:
